@@ -617,7 +617,8 @@ def solve_cf_slabnest(
             if s_name in ("svgnest", "sparrow_area", "mlp", "gfpack_guided"):
                 stage1_runs.append((s_name, r1))
 
-        fine_step = min(width, height) / 95.0
+        fine_step = min(width, height) / 72.0
+        fine_deadline = t0 + max(float(time_limit_sec) * 1.8, 2.2)
         rank_weight_map = {
             str(it["item_instance_id"]): float((len(ord_large_first) - idx) ** 3) * float(it["area"])
             for idx, it in enumerate(ord_large_first)
@@ -670,16 +671,22 @@ def solve_cf_slabnest(
             )
 
             for it in rem_items:
+                if time.perf_counter() > fine_deadline:
+                    break
                 found = False
                 for th in it["rotations"]:
-                    if found:
+                    if found or time.perf_counter() > fine_deadline:
                         break
                     rot_p = rotate_polygon(it["base_polygon"], th)
                     bx1, by1, bx2, by2 = bbox(rot_p)
                     y = margin - by1
                     while y <= height - margin - by2 + 1e-3 and not found:
+                        if time.perf_counter() > fine_deadline:
+                            break
                         x = margin - bx1
                         while x <= width - margin - bx2 + 1e-3:
+                            if time.perf_counter() > fine_deadline:
+                                break
                             pw = translate_polygon(rot_p, x, y)
                             ok, parent_hole_id = check_placement_feasible(
                                 poly=pw,
