@@ -411,25 +411,33 @@ def render_dry_lay_preview(
         )
         cv2.putText(board_img, stat_str, (735, 35), cv2.FONT_HERSHEY_SIMPLEX, 0.50, (110, 231, 183), 1, cv2.LINE_AA)
 
-    # --- SECTION 1 (Left): 3x2 Core Vein-Matched Feature Wall / Tea-Table Dry-Lay ---
+    # --- SECTION 1 (Left): Polymorphic Tier-1 Core Vein-Matched Dry-Lay (RxC Grid OR Monolithic Hero Countertop) ---
     sec1_x, sec1_y = 28, 96
-    cv2.putText(
-        board_img,
-        "1. Core 50x50cm Vein-Matched Dry-Lay (3x2 Feature Panel)",
-        (sec1_x, sec1_y - 12),
-        cv2.FONT_HERSHEY_SIMPLEX,
-        0.58,
-        (15, 23, 42),
-        2,
-        cv2.LINE_AA,
-    )
-    tile_sz = 196
+    t1_req_meta = [it for it in all_items if int(it.get("tier", 3)) == 1 or it.get("role") == "core_vein_match"]
+    ref_t1_m = t1_req_meta[0] if t1_req_meta else (meta.get(t1_pls[0]["item_instance_id"], {}) if t1_pls else {})
+    gl_spec = ref_t1_m.get("grid_layout")
+    if gl_spec and len(gl_spec) == 2:
+        grid_rows, grid_cols = int(gl_spec[0]), int(gl_spec[1])
+    elif len(t1_req_meta) == 1:
+        grid_rows, grid_cols = 1, 1
+    elif len(t1_req_meta) == 4:
+        grid_rows, grid_cols = 2, 2
+    elif len(t1_req_meta) == 2:
+        grid_rows, grid_cols = 1, 2
+    else:
+        grid_rows, grid_cols = 2, 3
+
+    hero_shape = str(ref_t1_m.get("shape", "square")).lower()
+    if grid_rows == 1 and grid_cols == 1:
+        sec1_hdr = f"1. Core Hero Piece in Golden Zone ({hero_shape.replace('_', ' ').title()})"
+    else:
+        sec1_hdr = f"1. Core Vein-Matched Dry-Lay ({grid_rows}x{grid_cols} Continuous Assembly)"
+    cv2.putText(board_img, sec1_hdr, (sec1_x, sec1_y - 12), cv2.FONT_HERSHEY_SIMPLEX, 0.56, (15, 23, 42), 2, cv2.LINE_AA)
+
     grout = 3
-    grid_cols, grid_rows = 3, 2
-    panel_w = grid_cols * tile_sz + (grid_cols + 1) * grout
-    panel_h = grid_rows * tile_sz + (grid_rows + 1) * grout
-    # Dark architectural stone shadow frame
+    panel_w, panel_h = 598, 402
     cv2.rectangle(board_img, (sec1_x - 4, sec1_y - 4), (sec1_x + panel_w + 4, sec1_y + panel_h + 4), (45, 55, 72), -1)
+    cv2.rectangle(board_img, (sec1_x, sec1_y), (sec1_x + panel_w, sec1_y + panel_h), (226, 232, 240), -1)
 
     def _t1_order_key(p: dict[str, Any]) -> tuple[int, int]:
         if p.get("grid_rc"):
@@ -439,30 +447,64 @@ def render_dry_lay_preview(
         return (int(round(-np.mean(ys) / 450.0)), int(round(np.mean(xs))))
 
     t1_sorted = sorted(t1_pls, key=_t1_order_key)
-    for idx_cell in range(grid_rows * grid_cols):
-        r_c = idx_cell // grid_cols
-        c_c = idx_cell % grid_cols
-        tx = sec1_x + grout + c_c * (tile_sz + grout)
-        ty = sec1_y + grout + r_c * (tile_sz + grout)
-        if idx_cell < len(t1_sorted):
-            p = t1_sorted[idx_cell]
-            patch = extract_oriented_rect_patch(rectified_bgr, p["polygon"], w_mm, h_mm, tile_sz, tile_sz)
-            board_img[ty : ty + tile_sz, tx : tx + tile_sz] = patch
-            lbl = p.get("aesthetic_tag", f"C{idx_cell + 1}")
-            cv2.rectangle(board_img, (tx + 6, ty + 6), (tx + 48, ty + 28), (15, 23, 42), -1)
-            cv2.putText(board_img, f"#{lbl}", (tx + 10, ty + 22), cv2.FONT_HERSHEY_SIMPLEX, 0.46, (255, 255, 255), 1, cv2.LINE_AA)
-        else:
-            cv2.rectangle(board_img, (tx, ty), (tx + tile_sz, ty + tile_sz), (203, 213, 225), -1)
-            cv2.putText(board_img, "MISSING", (tx + 55, ty + 102), cv2.FONT_HERSHEY_SIMPLEX, 0.55, (185, 28, 28), 2, cv2.LINE_AA)
+    h_img, w_img = rectified_bgr.shape[:2]
+    sx_i, sy_i = w_img / max(1.0, w_mm), h_img / max(1.0, h_mm)
 
-    # Remnant Mosaic Preview below Section 1
+    if grid_rows == 1 and grid_cols == 1 and t1_sorted:
+        p0 = t1_sorted[0]
+        # Render exact polygon silhouette (including sink cutout hole or L-shape contour!)
+        pts_src = np.array([[float(x) * sx_i, float(h_img) - float(y) * sy_i] for x, y in p0["polygon"]], dtype=np.int32)
+        mask0 = np.zeros((h_img, w_img), dtype=np.uint8)
+        cv2.fillPoly(mask0, [pts_src.reshape(-1, 1, 2)], 255)
+        if p0.get("hole_polygon"):
+            h_src = np.array([[float(x) * sx_i, float(h_img) - float(y) * sy_i] for x, y in p0["hole_polygon"]], dtype=np.int32)
+            cv2.fillPoly(mask0, [h_src.reshape(-1, 1, 2)], 0)
+        bx0, by0, bw0, bh0 = cv2.boundingRect(pts_src)
+        bx0, by0 = max(0, bx0), max(0, by0)
+        bw0, bh0 = max(1, min(w_img - bx0, bw0)), max(1, min(h_img - by0, bh0))
+        crop0 = rectified_bgr[by0 : by0 + bh0, bx0 : bx0 + bw0].copy()
+        cmask0 = mask0[by0 : by0 + bh0, bx0 : bx0 + bw0]
+        crop0[cmask0 == 0] = (226, 232, 240)
+        sc0 = min((panel_w - 28) / float(bw0), (panel_h - 28) / float(bh0))
+        nw0, nh0 = max(20, int(round(bw0 * sc0))), max(20, int(round(bh0 * sc0)))
+        res0 = cv2.resize(crop0, (nw0, nh0), interpolation=cv2.INTER_AREA)
+        ox0 = sec1_x + (panel_w - nw0) // 2
+        oy0 = sec1_y + (panel_h - nh0) // 2
+        board_img[oy0 : oy0 + nh0, ox0 : ox0 + nw0] = res0
+        cv2.rectangle(board_img, (ox0 + 8, oy0 + 8), (ox0 + 215, oy0 + 34), (15, 23, 42), -1)
+        hero_disp = {"hollow_countertop": "Hollow Island", "l_shape": "L-Shape Bar"}.get(hero_shape, hero_shape[:14])
+        tag_h = f"#C1 {hero_disp} ({float(p0.get('rotation', 0)):.0f}d)"
+        cv2.putText(board_img, tag_h, (ox0 + 12, oy0 + 26), cv2.FONT_HERSHEY_SIMPLEX, 0.44, (255, 255, 255), 1, cv2.LINE_AA)
+    else:
+        cell_w = (panel_w - (grid_cols + 1) * grout) // max(1, grid_cols)
+        cell_h = (panel_h - (grid_rows + 1) * grout) // max(1, grid_rows)
+        for idx_cell in range(grid_rows * grid_cols):
+            r_c = idx_cell // grid_cols
+            c_c = idx_cell % grid_cols
+            tx = sec1_x + grout + c_c * (cell_w + grout)
+            ty = sec1_y + grout + r_c * (cell_h + grout)
+            if idx_cell < len(t1_sorted):
+                p = t1_sorted[idx_cell]
+                patch = extract_oriented_rect_patch(rectified_bgr, p["polygon"], w_mm, h_mm, cell_w, cell_h)
+                board_img[ty : ty + cell_h, tx : tx + cell_w] = patch
+                lbl = p.get("aesthetic_tag", f"C{idx_cell + 1}")
+                cv2.rectangle(board_img, (tx + 6, ty + 6), (tx + 48, ty + 28), (15, 23, 42), -1)
+                cv2.putText(board_img, f"#{lbl}", (tx + 10, ty + 22), cv2.FONT_HERSHEY_SIMPLEX, 0.46, (255, 255, 255), 1, cv2.LINE_AA)
+            else:
+                cv2.rectangle(board_img, (tx, ty), (tx + cell_w, ty + cell_h), (203, 213, 225), -1)
+                cv2.putText(board_img, "MISSING", (tx + max(6, cell_w // 4), ty + cell_h // 2), cv2.FONT_HERSHEY_SIMPLEX, 0.48, (185, 28, 28), 2, cv2.LINE_AA)
+
+    # --- SECTION 3 (Bottom-Left): Polymorphic Remnant Offcut Recovery (Triangles / Hexagons / Squares / PiP) ---
     mos_y = sec1_y + panel_h + 44
+    t3_shape = str(t3_pls[0].get("shape", "equilateral_triangle")).lower() if t3_pls else "offcut"
+    pip_cnt = sum(1 for p in t3_pls if p.get("nested_inside") or p.get("parent_hole_id"))
+    pip_note = f" incl. {pip_cnt} Sink-Hole PiP" if pip_cnt > 0 else ""
     cv2.putText(
         board_img,
-        f"3. Remnant Equilateral Mosaic Recovery ({len(t3_pls)} Pcs Cut from Offcuts)",
+        f"3. Remnant Offcut Recovery ({len(t3_pls)} Pcs {t3_shape.replace('_', ' ')}{pip_note})",
         (sec1_x, mos_y - 12),
         cv2.FONT_HERSHEY_SIMPLEX,
-        0.56,
+        0.52,
         (15, 23, 42),
         2,
         cv2.LINE_AA,
@@ -471,84 +513,110 @@ def render_dry_lay_preview(
     cv2.rectangle(board_img, (sec1_x, mos_y), (sec1_x + panel_w, mos_y + mos_box_h), (226, 232, 240), -1)
     cv2.rectangle(board_img, (sec1_x, mos_y), (sec1_x + panel_w, mos_y + mos_box_h), (100, 116, 139), 1)
 
-    h_img, w_img = rectified_bgr.shape[:2]
-    sx_i, sy_i = w_img / max(1.0, w_mm), h_img / max(1.0, h_mm)
-    tri_side_px = 92
-    tri_h_px = int(round(tri_side_px * math.sqrt(3.0) * 0.5))
-    max_mos_show = min(9, len(t3_pls))
-    start_mx = sec1_x + 28
-    base_my = mos_y + (mos_box_h + tri_h_px) // 2 - 4
+    if t3_pls and t3_shape in ("equilateral_triangle", "mosaic_triangle"):
+        tri_side_px = 92
+        tri_h_px = int(round(tri_side_px * math.sqrt(3.0) * 0.5))
+        max_mos_show = min(9, len(t3_pls))
+        start_mx = sec1_x + 28
+        base_my = mos_y + (mos_box_h + tri_h_px) // 2 - 4
+        for m_i in range(max_mos_show):
+            p = t3_pls[m_i]
+            pts_src = np.array([[float(x) * sx_i, float(h_img) - float(y) * sy_i] for x, y in p["polygon"]], dtype=np.float32)
+            if len(pts_src) >= 3:
+                upward = (m_i % 2 == 0)
+                cx_m = start_mx + m_i * (tri_side_px // 2 + 4)
+                if upward:
+                    dst_tri = np.array([[cx_m, base_my], [cx_m + tri_side_px, base_my], [cx_m + tri_side_px // 2, base_my - tri_h_px]], dtype=np.float32)
+                else:
+                    dst_tri = np.array([[cx_m + tri_side_px, base_my - tri_h_px], [cx_m, base_my - tri_h_px], [cx_m + tri_side_px // 2, base_my]], dtype=np.float32)
+                M_aff = cv2.getAffineTransform(pts_src[:3], dst_tri)
+                warped_tri = cv2.warpAffine(rectified_bgr, M_aff, (canvas_w, canvas_h), flags=cv2.INTER_LINEAR, borderMode=cv2.BORDER_REPLICATE)
+                tri_mask = np.zeros((canvas_h, canvas_w), dtype=np.uint8)
+                cv2.fillConvexPoly(tri_mask, dst_tri.astype(np.int32), 255)
+                board_img[tri_mask > 0] = warped_tri[tri_mask > 0]
+                cv2.polylines(board_img, [dst_tri.astype(np.int32)], True, (51, 65, 85), 2, cv2.LINE_AA)
+    elif t3_pls:
+        # Render actual cropped hexagons / square coasters / general offcut pieces cleanly in a row
+        max_show = min(6, len(t3_pls))
+        slot_sz = min(84, mos_box_h - 24)
+        gap_s = 12
+        for m_i in range(max_show):
+            p = t3_pls[m_i]
+            pts_m = np.array([[int(round(float(x) * sx_i)), int(round(h_img - float(y) * sy_i))] for x, y in p["polygon"]], dtype=np.int32)
+            mask_m = np.zeros((h_img, w_img), dtype=np.uint8)
+            cv2.fillPoly(mask_m, [pts_m.reshape(-1, 1, 2)], 255)
+            bx_m, by_m, bw_m, bh_m = cv2.boundingRect(pts_m)
+            bx_m, by_m = max(0, bx_m), max(0, by_m)
+            bw_m, bh_m = max(1, min(w_img - bx_m, bw_m)), max(1, min(h_img - by_m, bh_m))
+            crop_m = rectified_bgr[by_m : by_m + bh_m, bx_m : bx_m + bw_m].copy()
+            crop_m[mask_m[by_m : by_m + bh_m, bx_m : bx_m + bw_m] == 0] = (226, 232, 240)
+            tile_m = cv2.resize(crop_m, (slot_sz, slot_sz), interpolation=cv2.INTER_AREA)
+            dx_m = sec1_x + 20 + m_i * (slot_sz + gap_s)
+            dy_m = mos_y + (mos_box_h - slot_sz) // 2
+            board_img[dy_m : dy_m + slot_sz, dx_m : dx_m + slot_sz] = tile_m
+            b_col = (16, 185, 129) if (p.get("nested_inside") or p.get("parent_hole_id")) else (51, 65, 85)
+            cv2.rectangle(board_img, (dx_m, dy_m), (dx_m + slot_sz, dy_m + slot_sz), b_col, 2)
 
-    for m_i in range(max_mos_show):
-        p = t3_pls[m_i]
-        pts_src = np.array([[float(x) * sx_i, float(h_img) - float(y) * sy_i] for x, y in p["polygon"]], dtype=np.float32)
-        if len(pts_src) >= 3:
-            upward = (m_i % 2 == 0)
-            cx_m = start_mx + m_i * (tri_side_px // 2 + 4)
-            if upward:
-                dst_tri = np.array(
-                    [[cx_m, base_my], [cx_m + tri_side_px, base_my], [cx_m + tri_side_px // 2, base_my - tri_h_px]],
-                    dtype=np.float32,
-                )
-            else:
-                dst_tri = np.array(
-                    [[cx_m + tri_side_px, base_my - tri_h_px], [cx_m, base_my - tri_h_px], [cx_m + tri_side_px // 2, base_my]],
-                    dtype=np.float32,
-                )
-            M_aff = cv2.getAffineTransform(pts_src[:3], dst_tri)
-            warped_tri = cv2.warpAffine(rectified_bgr, M_aff, (canvas_w, canvas_h), flags=cv2.INTER_LINEAR, borderMode=cv2.BORDER_REPLICATE)
-            tri_mask = np.zeros((canvas_h, canvas_w), dtype=np.uint8)
-            cv2.fillConvexPoly(tri_mask, dst_tri.astype(np.int32), 255)
-            board_img[tri_mask > 0] = warped_tri[tri_mask > 0]
-            cv2.polylines(board_img, [dst_tri.astype(np.int32)], True, (51, 65, 85), 2, cv2.LINE_AA)
-
-    # --- SECTION 2 (Right): Sequential #S1..#S8 Staircase Treads (20x80cm) ---
+    # --- SECTION 2 (Right): Polymorphic Tier-2 Grain-Aligned Linear Strips & Round Accents ---
     sec2_x, sec2_y = 668, 96
+    t2_req_all = [it for it in all_items if it not in t1_req_meta and (int(it.get("tier", 3)) == 2 or it.get("role") == "stair_tread_tandem")]
+    n_t2_slots = max(1, min(8, len(t2_req_all) if t2_req_all else max(1, len(t2_pls))))
     cv2.putText(
         board_img,
-        "2. Grain-Aligned 20x80cm Stair Treads (#S1-#S8 Dry-Lay)",
+        f"2. Grain-Aligned Tier-2 Architectural Parts ({len(t2_pls)}/{len(t2_req_all) if t2_req_all else len(t2_pls)} Placed)",
         (sec2_x, sec2_y - 12),
         cv2.FONT_HERSHEY_SIMPLEX,
-        0.58,
+        0.56,
         (15, 23, 42),
         2,
         cv2.LINE_AA,
     )
-    tread_w_px, tread_h_px = 590, 68
+    avail_h2 = canvas_h - sec2_y - 24
     step_gap = 8
+    tread_h_px = max(56, min(92, (avail_h2 - (n_t2_slots - 1) * step_gap) // n_t2_slots))
+    tread_w_px = 590
     t2_sorted = sorted(t2_pls, key=lambda p: int(p.get("sequence_index", 99)))
-    for s_i in range(8):
+    for s_i in range(n_t2_slots):
         sy_pos = sec2_y + s_i * (tread_h_px + step_gap)
-        # Subtle staircase cascade indent (6px per step)
-        sx_pos = sec2_x + s_i * 8
-        cv2.rectangle(
-            board_img,
-            (sx_pos - 2, sy_pos - 2),
-            (sx_pos + tread_w_px + 2, sy_pos + tread_h_px + 2),
-            (51, 65, 85),
-            -1,
-        )
+        sx_pos = sec2_x + s_i * 7
+        cv2.rectangle(board_img, (sx_pos - 2, sy_pos - 2), (sx_pos + tread_w_px + 2, sy_pos + tread_h_px + 2), (51, 65, 85), -1)
         if s_i < len(t2_sorted):
             p = t2_sorted[s_i]
-            t_patch = extract_oriented_rect_patch(rectified_bgr, p["polygon"], w_mm, h_mm, tread_w_px, tread_h_px)
-            board_img[sy_pos : sy_pos + tread_h_px, sx_pos : sx_pos + tread_w_px] = t_patch
-            lbl = p.get("aesthetic_tag", f"S{s_i + 1}")
-            rot_err = float(p.get("vein_angle_error_deg", 0.0))
-            badge_col = (21, 128, 61) if rot_err <= 12.0 else (185, 28, 28)
-            cv2.rectangle(board_img, (sx_pos + 6, sy_pos + 6), (sx_pos + 128, sy_pos + 28), badge_col, -1)
-            cv2.putText(
-                board_img,
-                f"Step #{lbl} ({rot_err:.0f}d err)",
-                (sx_pos + 10, sy_pos + 22),
-                cv2.FONT_HERSHEY_SIMPLEX,
-                0.42,
-                (255, 255, 255),
-                1,
-                cv2.LINE_AA,
-            )
+            if str(p.get("shape", "")).lower() == "circle":
+                # Render clean circular stone tabletop inside the slot
+                pts_c = np.array([[int(round(float(x) * sx_i)), int(round(h_img - float(y) * sy_i))] for x, y in p["polygon"]], dtype=np.int32)
+                mask_c = np.zeros((h_img, w_img), dtype=np.uint8)
+                cv2.fillPoly(mask_c, [pts_c.reshape(-1, 1, 2)], 255)
+                bxc, byc, bwc, bhc = cv2.boundingRect(pts_c)
+                bxc, byc = max(0, bxc), max(0, byc)
+                bwc, bhc = max(1, min(w_img - bxc, bwc)), max(1, min(h_img - byc, bhc))
+                crop_c = rectified_bgr[byc : byc + bhc, bxc : bxc + bwc].copy()
+                crop_c[mask_c[byc : byc + bhc, bxc : bxc + bwc] == 0] = (232, 236, 241)
+                cv2.rectangle(board_img, (sx_pos, sy_pos), (sx_pos + tread_w_px, sy_pos + tread_h_px), (232, 236, 241), -1)
+                d_px = min(tread_h_px - 6, 120)
+                disk = cv2.resize(crop_c, (d_px, d_px), interpolation=cv2.INTER_AREA)
+                board_img[sy_pos + (tread_h_px - d_px) // 2 : sy_pos + (tread_h_px - d_px) // 2 + d_px, sx_pos + 220 : sx_pos + 220 + d_px] = disk
+                cv2.putText(board_img, f"Round Table #{s_i + 1}", (sx_pos + 14, sy_pos + tread_h_px // 2 + 5), cv2.FONT_HERSHEY_SIMPLEX, 0.46, (21, 128, 61), 2, cv2.LINE_AA)
+            else:
+                t_patch = extract_oriented_rect_patch(rectified_bgr, p["polygon"], w_mm, h_mm, tread_w_px, tread_h_px)
+                board_img[sy_pos : sy_pos + tread_h_px, sx_pos : sx_pos + tread_w_px] = t_patch
+                lbl = p.get("aesthetic_tag", f"S{s_i + 1}")
+                if "vein_angle_error_deg" in p:
+                    rot_err = float(p["vein_angle_error_deg"])
+                else:
+                    v_deg_ref = float(
+                        case.get("texture_field", {}).get(
+                            "dominant_vein_angle_deg", case["board"].get("vein_angle_deg", 0.0)
+                        )
+                    )
+                    d_ang = abs((float(p.get("rotation", 0.0)) - v_deg_ref) % 180.0)
+                    rot_err = min(d_ang, 180.0 - d_ang)
+                badge_col = (45, 138, 21) if rot_err <= 12.0 else (28, 28, 195)
+                cv2.rectangle(board_img, (sx_pos + 6, sy_pos + 6), (sx_pos + 144, sy_pos + 28), badge_col, -1)
+                cv2.putText(board_img, f"Strip #{lbl} ({rot_err:.0f}d err)", (sx_pos + 10, sy_pos + 22), cv2.FONT_HERSHEY_SIMPLEX, 0.41, (255, 255, 255), 1, cv2.LINE_AA)
         else:
             cv2.rectangle(board_img, (sx_pos, sy_pos), (sx_pos + tread_w_px, sy_pos + tread_h_px), (203, 213, 225), -1)
-            cv2.putText(board_img, f"Step #S{s_i + 1} UNPLACED", (sx_pos + 210, sy_pos + 40), cv2.FONT_HERSHEY_SIMPLEX, 0.52, (185, 28, 28), 2, cv2.LINE_AA)
+            cv2.putText(board_img, f"Part #S{s_i + 1} UNPLACED", (sx_pos + 210, sy_pos + tread_h_px // 2 + 6), cv2.FONT_HERSHEY_SIMPLEX, 0.50, (185, 28, 28), 2, cv2.LINE_AA)
 
     if output_png_path is not None:
         out_p = Path(output_png_path)

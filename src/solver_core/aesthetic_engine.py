@@ -349,10 +349,15 @@ def solve_aesthetic_stone_nesting(
                     theta_cands.append(a_orth)
 
         grid_shapes: list[tuple[int, int]] = []
-        if enable_vein_matching and n1 == 6:
+        gl_spec = ref_it.get("grid_layout")
+        if enable_vein_matching and gl_spec and len(gl_spec) == 2 and int(gl_spec[0]) * int(gl_spec[1]) >= n1:
+            grid_shapes = [(int(gl_spec[0]), int(gl_spec[1]))]
+        elif enable_vein_matching and n1 == 6:
             grid_shapes = [(2, 3)]
         elif enable_vein_matching and n1 == 4:
             grid_shapes = [(2, 2)]
+        elif enable_vein_matching and n1 == 1:
+            grid_shapes = [(1, 1)]
         elif enable_vein_matching and n1 >= 2:
             r_g = max(1, int(round(math.sqrt(n1))))
             c_g = int(math.ceil(n1 / r_g))
@@ -612,12 +617,17 @@ def solve_aesthetic_stone_nesting(
                     priority=3,
                 )
                 shp_o = ShapelyPolygon(pw)
+                hole_world: PolygonCoords | None = None
+                shp_h = None
+                if it.get("hole_polygon"):
+                    hole_world = translate_polygon(rotate_polygon(it["hole_polygon"], th), cx_pos, cy_pos)
+                    shp_h = ShapelyPolygon(hole_world)
                 placed_records.append(
                     {
                         "item_instance_id": it["item_instance_id"],
                         "shapely_outer": shp_o,
-                        "shapely_hole": None,
-                        "hole_polygon_world": None,
+                        "shapely_hole": shp_h,
+                        "hole_polygon_world": hole_world,
                         "bbox": bbox(pw),
                         "area": float(it["area"]),
                         "tier": 1,
@@ -631,7 +641,7 @@ def solve_aesthetic_stone_nesting(
                         cy_pos,
                         th,
                         pw,
-                        None,
+                        hole_world,
                         None,
                         chosen_score,
                         tex_info,
@@ -983,10 +993,142 @@ def solve_aesthetic_stone_nesting(
                     # Remaining identical triangles cannot fit either — terminate cleanly!
                     break
 
-        # 3B. Any non-triangle Tier-3 fillers
-        fine_step_other = max(24.0, min(width, height) / 50.0)
-        for it in other_t3:
+        # 3B. 2D Hexagonal Honeycomb Tessellation for Regular Hexagons + Part-in-Part / Dense Grid for Other Tier-3 Fillers
+        hex_items = [
+            it for it in other_t3 if str(it.get("shape", "")).lower() in ("hexagon", "regular_hexagon", "mosaic_hexagon")
+        ]
+        rem_other = [it for it in other_t3 if it not in hex_items]
+
+        if hex_items:
+            ref_h = hex_items[0]
+            hx1, hy1, hx2, hy2 = bbox(ref_h["base_polygon"])
+            hw_h = hx2 - hx1
+            hh_h = hy2 - hy1
+            r_hex = hw_h * 0.5
+            dx_hex = 1.5 * r_hex + (kerf + 0.6) * 1.16
+            dy_hex = hh_h + kerf + 0.6
+            hex_cands: list[tuple[float, float]] = []
+            col_i = 0
+            x_cur = margin - hx1
+            while x_cur <= width - margin - hx2 + 1e-3:
+                y_off = (dy_hex * 0.5) if (col_i % 2 == 1) else 0.0
+                y_cur = margin - hy1 + y_off
+                while y_cur <= height - margin - hy2 + 1e-3:
+                    hex_cands.append((x_cur, y_cur))
+                    y_cur += dy_hex
+                x_cur += dx_hex
+                col_i += 1
+            hex_cands.sort(key=lambda p: (p[1], p[0]))
+            h_ptr = 0
+            for it in hex_items:
+                placed_h = False
+                while h_ptr < len(hex_cands):
+                    xx, yy = hex_cands[h_ptr]
+                    h_ptr += 1
+                    pw = translate_polygon(it["base_polygon"], xx, yy)
+                    ok, parent_hole = check_placement_feasible(
+                        pw, placed_records, obstacle_shps, width, height, margin, kerf, 0.0, cut_mode
+                    )
+                    if ok:
+                        m_counter += 1
+                        tex_info = evaluate_placement_texture_cost(
+                            pw, 0.0, width, height, texture_field, grain_locked=False, priority=1
+                        )
+                        placed_records.append(
+                            {
+                                "item_instance_id": it["item_instance_id"],
+                                "shapely_outer": ShapelyPolygon(pw),
+                                "shapely_hole": None,
+                                "hole_polygon_world": None,
+                                "bbox": bbox(pw),
+                                "area": float(it["area"]),
+                                "tier": 3,
+                            }
+                        )
+                        total_tex_penalty += float(tex_info["total_texture_penalty"])
+                        placements.append(
+                            _make_placement_dict(
+                                it,
+                                xx,
+                                yy,
+                                0.0,
+                                pw,
+                                None,
+                                parent_hole,
+                                0.92,
+                                tex_info,
+                                aesthetic_tag=f"M{m_counter}",
+                                sequence_index=m_counter,
+                            )
+                        )
+                        placed_h = True
+                        break
+                if not placed_h:
+                    break
+
+        fine_step_other = max(24.0, min(width, height) / 52.0)
+        for it in rem_other:
             found_o = False
+            # Priority 1: Check inside any interior sink cutout holes first (Part-in-Part / PiP reuse!)
+            hole_anchors: list[tuple[float, float, float]] = []
+            for rec in placed_records:
+                if rec.get("shapely_hole") is not None and rec.get("hole_polygon_world"):
+                    hb = rec["shapely_hole"].bounds
+                    for th_h in it["rotations"][:2]:
+                        rp_h = rotate_polygon(it["base_polygon"], th_h)
+                        bx1_h, by1_h, bx2_h, by2_h = bbox(rp_h)
+                        step_h = max(30.0, min(bx2_h - bx1_h, by2_h - by1_h) * 0.35)
+                        yy_h = hb[1] - by1_h
+                        while yy_h <= hb[3] - by2_h + 1e-2:
+                            xx_h = hb[0] - bx1_h
+                            while xx_h <= hb[2] - bx2_h + 1e-2:
+                                hole_anchors.append((th_h, xx_h, yy_h))
+                                xx_h += step_h
+                            yy_h += step_h
+
+            for th_h, xx_h, yy_h in hole_anchors:
+                rp = rotate_polygon(it["base_polygon"], th_h)
+                pw = translate_polygon(rp, xx_h, yy_h)
+                ok, parent_hole = check_placement_feasible(
+                    pw, placed_records, obstacle_shps, width, height, margin, kerf, 0.0, cut_mode
+                )
+                if ok:
+                    m_counter += 1
+                    tex_info = evaluate_placement_texture_cost(
+                        pw, th_h, width, height, texture_field, grain_locked=False, priority=1
+                    )
+                    placed_records.append(
+                        {
+                            "item_instance_id": it["item_instance_id"],
+                            "shapely_outer": ShapelyPolygon(pw),
+                            "shapely_hole": None,
+                            "hole_polygon_world": None,
+                            "bbox": bbox(pw),
+                            "area": float(it["area"]),
+                            "tier": 3,
+                        }
+                    )
+                    total_tex_penalty += float(tex_info["total_texture_penalty"])
+                    placements.append(
+                        _make_placement_dict(
+                            it,
+                            xx_h,
+                            yy_h,
+                            th_h,
+                            pw,
+                            None,
+                            parent_hole,
+                            0.96,
+                            tex_info,
+                            aesthetic_tag=f"M{m_counter}",
+                            sequence_index=m_counter,
+                        )
+                    )
+                    found_o = True
+                    break
+            if found_o:
+                continue
+
             for th in it["rotations"]:
                 if found_o:
                     break
@@ -1021,7 +1163,7 @@ def solve_aesthetic_stone_nesting(
                                 _make_placement_dict(
                                     it,
                                     xx,
-                                    cy := yy,
+                                    yy,
                                     th,
                                     pw,
                                     None,
@@ -1115,7 +1257,7 @@ def evaluate_aesthetic_nesting_metrics(
         golden_hit_rate = 0.0
         tier1_saliency = 0.0
 
-    # 2. Seam Vein-Continuity Score across assembled 2x3 (or RxC) Core Feature Grid
+    # 2. Seam Vein-Continuity Score across assembled RxC Core Feature Grid (or monolithic Golden Hero Countertop)
     seam_scores: list[float] = []
     if len(t1_pls) >= 2:
         from ..ui_dxf.overlay_renderer import extract_oriented_rect_patch
@@ -1127,7 +1269,22 @@ def evaluate_aesthetic_nesting_metrics(
             return (int(round(-(by1 + by2) * 0.5 / 450.0)), int(round((bx1 + bx2) * 0.5)))
 
         ordered_t1 = sorted(t1_pls, key=_sort_t1)
-        n_cols = 3 if len(ordered_t1) >= 6 else 2
+        ref_t1_meta = item_meta.get(ordered_t1[0]["item_instance_id"], {})
+        gl_eval = ref_t1_meta.get("grid_layout")
+        if gl_eval and len(gl_eval) == 2:
+            n_cols = int(gl_eval[1])
+        else:
+            n_cols = 3 if len(ordered_t1) >= 6 else (len(ordered_t1) if len(ordered_t1) <= 2 else 2)
+        b_poly0 = ref_t1_meta.get("base_polygon")
+        if b_poly0:
+            bx1_0, by1_0, bx2_0, by2_0 = bbox(b_poly0)
+            exp_pitch_u = (bx2_0 - bx1_0) + kerf + 0.3
+            exp_pitch_v = (by2_0 - by1_0) + kerf + 0.3
+        else:
+            side_len = math.sqrt(max(1.0, float(ordered_t1[0].get("area", 250000.0))))
+            exp_pitch_u = side_len + kerf + 0.3
+            exp_pitch_v = side_len + kerf + 0.3
+
         for idx_a, pa in enumerate(ordered_t1):
             r_a, c_a = idx_a // n_cols, idx_a % n_cols
             spa = ShapelyPolygon(pa["polygon"])
@@ -1136,12 +1293,10 @@ def evaluate_aesthetic_nesting_metrics(
             rad_a = math.radians(th_a)
             ux_a, uy_a = math.cos(rad_a), math.sin(rad_a)
             vx_a, vy_a = -math.sin(rad_a), math.cos(rad_a)
-            side_len = math.sqrt(max(1.0, float(pa.get("area", 250000.0))))
-            exp_pitch = side_len + kerf + 0.3
 
             for r_b, c_b in [(r_a, c_a + 1), (r_a + 1, c_a)]:
                 idx_b = r_b * n_cols + c_b
-                if idx_b >= len(ordered_t1):
+                if idx_b >= len(ordered_t1) or c_b >= n_cols:
                     continue
                 pb = ordered_t1[idx_b]
                 spb = ShapelyPolygon(pb["polygon"])
@@ -1149,13 +1304,12 @@ def evaluate_aesthetic_nesting_metrics(
                 th_b = float(pb.get("rotation", 0.0))
                 same_rot = abs((th_a - th_b + 180.0) % 360.0 - 180.0) <= 5.0
 
-                # Check if pb came from the exact physically adjacent grid neighbor of pa on the slab!
                 if c_b == c_a + 1:
-                    target_dx, target_dy = exp_pitch * ux_a, exp_pitch * uy_a
+                    target_dx, target_dy = exp_pitch_u * ux_a, exp_pitch_u * uy_a
                 else:
-                    target_dx, target_dy = -exp_pitch * vx_a, -exp_pitch * vy_a
+                    target_dx, target_dy = -exp_pitch_v * vx_a, -exp_pitch_v * vy_a
                 vec_err = math.hypot((c_bx - c_ax) - target_dx, (c_by - c_ay) - target_dy)
-                is_true_directional_neighbor = same_rot and (vec_err <= 22.0)
+                is_true_directional_neighbor = same_rot and (vec_err <= 24.0)
                 phys_dist = float(spa.distance(spb))
 
                 if rectified_bgr is not None:
@@ -1180,18 +1334,27 @@ def evaluate_aesthetic_nesting_metrics(
                     if is_true_directional_neighbor:
                         seam_scores.append(min(0.98, 0.42 + 0.58 * edge_match))
                     else:
-                        # Non-matching slab origin breaks macro vein flow across the seam
                         gap_pen = min(0.42, (vec_err / max(1.0, math.hypot(width, height))) * 0.85)
                         seam_scores.append(max(0.15, 0.58 * edge_match - gap_pen))
                 else:
                     seam_scores.append(0.93 if is_true_directional_neighbor else max(0.25, 0.55 - 0.30 * (phys_dist / 1200.0)))
+    elif len(t1_pls) == 1:
+        # Monolithic hero piece (e.g., hollow sink island countertop or L-bar): unbroken internal river score
+        p0 = t1_pls[0]
+        rot0 = float(p0.get("rotation", 0.0))
+        d0 = abs((rot0 - vein_deg) % 180.0)
+        if d0 > 90.0:
+            d0 = 180.0 - d0
+        align0 = math.cos(math.radians(d0)) ** 2
+        seam_scores.append(round(0.32 + 0.36 * golden_hit_rate + 0.24 * align0, 4))
 
     seam_continuity = float(np.mean(seam_scores)) if seam_scores else 0.0
 
-    # 3. Tier-2 Stair Tread Vein Alignment Error & Rotary Bridge-Saw Tandem Collinearity
-    if t2_pls:
+    # 3. Tier-2 Linear Architectural Strip Vein Alignment Error & Rotary Bridge-Saw Tandem Collinearity
+    t2_directional = [p for p in t2_pls if str(p.get("shape", "")).lower() != "circle"]
+    if t2_directional:
         ang_errs = []
-        for p in t2_pls:
+        for p in t2_directional:
             rot = float(p.get("rotation", 0.0))
             diff = abs((rot - vein_deg) % 180.0)
             if diff > 90.0:
@@ -1199,9 +1362,8 @@ def evaluate_aesthetic_nesting_metrics(
             ang_errs.append(diff)
         tread_vein_err = float(np.mean(ang_errs))
 
-        # Collinear tandem pairs in local rotated frame (shared rotary bridge-saw straight cut line!)
         tandem_hits = 0
-        for i, pa in enumerate(t2_pls):
+        for i, pa in enumerate(t2_directional):
             ra = float(pa.get("rotation", 0.0))
             rad_r = math.radians(ra)
             ux_r, uy_r = math.cos(rad_r), math.sin(rad_r)
@@ -1211,7 +1373,7 @@ def evaluate_aesthetic_nesting_metrics(
             along_a = ca.x * ux_r + ca.y * uy_r
 
             has_partner = False
-            for j, pb in enumerate(t2_pls):
+            for j, pb in enumerate(t2_directional):
                 if i == j:
                     continue
                 rb = float(pb.get("rotation", 0.0))
@@ -1220,13 +1382,15 @@ def evaluate_aesthetic_nesting_metrics(
                 cb = ShapelyPolygon(pb["polygon"]).centroid
                 perp_b = cb.x * vx_r + cb.y * vy_r
                 along_b = cb.x * ux_r + cb.y * uy_r
-                # Either head-to-tail along the same strip (|perp_a - perp_b| <= 6mm) OR stacked parallel strip (|along_a - along_b| <= 6mm)
                 if abs(perp_a - perp_b) <= 8.0 or abs(along_a - along_b) <= 8.0:
                     has_partner = True
                     break
             if has_partner:
                 tandem_hits += 1
-        tandem_collinearity = tandem_hits / float(len(t2_pls))
+        tandem_collinearity = tandem_hits / float(len(t2_directional))
+    elif t2_pls:
+        tread_vein_err = 0.0
+        tandem_collinearity = 0.5
     else:
         tread_vein_err = 90.0
         tandem_collinearity = 0.0

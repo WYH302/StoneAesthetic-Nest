@@ -108,6 +108,10 @@ def build_part_polygon(spec: dict[str, Any]) -> tuple[PolygonCoords, PolygonCoor
         side = float(spec.get("side", spec.get("width", 180.0)))
         h = side * math.sqrt(3.0) * 0.5
         outer = [(0.0, 0.0), (side, 0.0), (side * 0.5, h)]
+    elif kind in ("hexagon", "regular_hexagon", "mosaic_hexagon"):
+        r = float(spec.get("radius", spec.get("side", 100.0)))
+        pts = [(r * math.cos(math.radians(60.0 * i)), r * math.sin(math.radians(60.0 * i))) for i in range(6)]
+        outer = normalize_to_origin(pts)
     elif kind == "triangle":
         if "side" in spec or spec.get("equilateral", False):
             side = float(spec.get("side", spec.get("width", 180.0)))
@@ -215,6 +219,8 @@ def resolve_allowed_rotations(
         return [0.0]
     if str(item.get("shape", "")).lower() in ("equilateral_triangle", "mosaic_triangle") or item.get("equilateral", False):
         return [0.0, 60.0, 120.0, 180.0, 240.0, 300.0]
+    if str(item.get("shape", "")).lower() in ("hexagon", "regular_hexagon", "mosaic_hexagon"):
+        return [0.0, 30.0]
 
     step = float(case.get("constraints", {}).get("rotation_step", 90.0))
     step = max(15.0, step)
