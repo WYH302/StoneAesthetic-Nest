@@ -121,6 +121,21 @@ StoneAesthetic-Nest/
 - Raw uncut marble, onyx, and travertine PBR scans in `examples/sample_slabs/` originate from [AmbientCG](https://ambientcg.com/) under the **CC0 1.0 Universal Public Domain Dedication**.
 - External official geometric solvers evaluated for fair reference include [PackingSolver](https://github.com/fontanf/packingsolver), [jagua-rs](https://github.com/JeroenGar/jagua-rs), and [Sparrow](https://github.com/JeroenGar/sparrow), along with the [EURO ESICUP](https://www.euro-online.org/websites/esicup/) and Baldacci defective-sheet community benchmarks.
 
+---
+
+## Citation | 引用格式
+
+If you find this open-source prototype or polymorphic stone benchmark helpful for your research or engineering exploration, please consider citing:
+
+```bibtex
+@article{wu2026stoneaesthetic,
+  author  = {Wu, Yonghao},
+  title   = {StoneAesthetic-Nest: Beyond Area Maximization---Anisotropic Vein-Continuous and Multi-Tier Nesting for Natural Stone CAD/CAM},
+  journal = {Preprint submitted to Computer-Aided Design},
+  year    = {2026}
+}
+```
+
 ## License | 开源协议
 
 Released under the [MIT License](LICENSE).
