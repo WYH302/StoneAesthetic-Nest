@@ -1,0 +1,65 @@
+{
+  "gpu_name": "NVIDIA GeForce RTX 3090",
+  "n_slabs": 24,
+  "n_varieties": 12,
+  "n_folds": 5,
+  "pairs_per_slab": 36,
+  "models": [
+    {
+      "model": "AestheticVeinRankerMLP (12-D Physics, Ours)",
+      "device": "CPU (Zero-GPU)",
+      "params": 3085,
+      "oof_rank_acc_mean_pct": 98.84,
+      "oof_rank_acc_std_pct": 0.77,
+      "per_fold_acc_pct": [
+        99.07,
+        98.61,
+        98.61,
+        100.0,
+        97.92
+      ],
+      "train_5fold_sec": 1.6,
+      "infer_peak_vram_mib": 0.0,
+      "cands_per_sec": 3027990.7,
+      "ms_per_100_cands": 0.033
+    },
+    {
+      "model": "MobileNetV3-Small (RGB Patch CNN)",
+      "device": "RTX 3090 (CUDA)",
+      "params": 1518881,
+      "oof_rank_acc_mean_pct": 49.12,
+      "oof_rank_acc_std_pct": 21.34,
+      "per_fold_acc_pct": [
+        54.17,
+        39.35,
+        82.64,
+        25.69,
+        43.75
+      ],
+      "train_5fold_sec": 198.4,
+      "train_peak_vram_mib": 142.4,
+      "infer_peak_vram_mib": 71.2,
+      "cands_per_sec": 4261.1,
+      "ms_per_100_cands": 23.47
+    },
+    {
+      "model": "ResNet-18 (RGB Patch CNN)",
+      "device": "RTX 3090 (CUDA)",
+      "params": 11177025,
+      "oof_rank_acc_mean_pct": 59.81,
+      "oof_rank_acc_std_pct": 5.45,
+      "per_fold_acc_pct": [
+        57.87,
+        64.81,
+        65.28,
+        59.03,
+        52.08
+      ],
+      "train_5fold_sec": 88.34,
+      "train_peak_vram_mib": 334.9,
+      "infer_peak_vram_mib": 268.4,
+      "cands_per_sec": 8459.2,
+      "ms_per_100_cands": 11.82
+    }
+  ]
+}

@@ -1,0 +1,180 @@
+{
+  "total_wall_sec": 153.39,
+  "safety_buffer_sweep": [
+    {
+      "d_safe_mm": 2.0,
+      "full_completion": "7/7",
+      "mean_util_pct": 57.75,
+      "mean_seam_pct": 86.86,
+      "mean_profit_cny": 3793.6
+    },
+    {
+      "d_safe_mm": 3.0,
+      "full_completion": "7/7",
+      "mean_util_pct": 57.75,
+      "mean_seam_pct": 86.86,
+      "mean_profit_cny": 3793.6
+    },
+    {
+      "d_safe_mm": 5.0,
+      "full_completion": "7/7",
+      "mean_util_pct": 57.75,
+      "mean_seam_pct": 86.86,
+      "mean_profit_cny": 3793.6
+    },
+    {
+      "d_safe_mm": 8.0,
+      "full_completion": "7/7",
+      "mean_util_pct": 57.75,
+      "mean_seam_pct": 86.86,
+      "mean_profit_cny": 3793.6
+    },
+    {
+      "d_safe_mm": 12.0,
+      "full_completion": "7/7",
+      "mean_util_pct": 57.75,
+      "mean_seam_pct": 86.86,
+      "mean_profit_cny": 3793.6
+    }
+  ],
+  "multi_seed_stability": {
+    "seeds": [
+      {
+        "seed": 42,
+        "train_acc_pct": 100.0,
+        "mean_util_pct": 57.75,
+        "mean_seam_pct": 86.51,
+        "mean_gold_pct": 93.71,
+        "mean_profit_cny": 3845.7
+      },
+      {
+        "seed": 101,
+        "train_acc_pct": 100.0,
+        "mean_util_pct": 57.75,
+        "mean_seam_pct": 86.51,
+        "mean_gold_pct": 93.71,
+        "mean_profit_cny": 3845.7
+      },
+      {
+        "seed": 2026,
+        "train_acc_pct": 100.0,
+        "mean_util_pct": 57.75,
+        "mean_seam_pct": 86.51,
+        "mean_gold_pct": 93.71,
+        "mean_profit_cny": 3845.7
+      },
+      {
+        "seed": 7777,
+        "train_acc_pct": 100.0,
+        "mean_util_pct": 57.75,
+        "mean_seam_pct": 86.51,
+        "mean_gold_pct": 93.71,
+        "mean_profit_cny": 3845.7
+      },
+      {
+        "seed": 9999,
+        "train_acc_pct": 100.0,
+        "mean_util_pct": 57.75,
+        "mean_seam_pct": 86.51,
+        "mean_gold_pct": 93.71,
+        "mean_profit_cny": 3845.7
+      }
+    ],
+    "profit_mean_cny": 3845.7,
+    "profit_std_cny": 0.0,
+    "seam_std_pct": 0.0
+  },
+  "pricing_regime_invariance": {
+    "regimes": [
+      {
+        "regime": "Mid-Tier Carrara Marble",
+        "profits_cny": {
+          "packingsolver_official": 1106.4,
+          "jagua_official": 1038.1,
+          "sparrow_official": 883.4,
+          "stone_aesthetic_ours": 2267.2
+        },
+        "ratio_vs_packingsolver": 2.05,
+        "ratio_vs_sparrow": 2.57
+      },
+      {
+        "regime": "Standard Yunfu Luxury (Paper)",
+        "profits_cny": {
+          "packingsolver_official": 1427.3,
+          "jagua_official": 1292.5,
+          "sparrow_official": 1026.7,
+          "stone_aesthetic_ours": 3570.0
+        },
+        "ratio_vs_packingsolver": 2.5,
+        "ratio_vs_sparrow": 3.48
+      },
+      {
+        "regime": "Ultra-Luxury Emerald Onyx",
+        "profits_cny": {
+          "packingsolver_official": 2955.7,
+          "jagua_official": 2691.6,
+          "sparrow_official": 2211.8,
+          "stone_aesthetic_ours": 7077.5
+        },
+        "ratio_vs_packingsolver": 2.39,
+        "ratio_vs_sparrow": 3.2
+      }
+    ]
+  },
+  "scalability_stress": [
+    {
+      "requested_parts": 20,
+      "placed_parts": 20,
+      "runtime_sec": 1.818,
+      "utilization_pct": 44.23,
+      "seam_pct": 84.3,
+      "strip_err_deg": 0.0,
+      "rac_feasible": true
+    },
+    {
+      "requested_parts": 40,
+      "placed_parts": 40,
+      "runtime_sec": 1.854,
+      "utilization_pct": 46.89,
+      "seam_pct": 84.3,
+      "strip_err_deg": 0.0,
+      "rac_feasible": true
+    },
+    {
+      "requested_parts": 60,
+      "placed_parts": 60,
+      "runtime_sec": 1.723,
+      "utilization_pct": 49.54,
+      "seam_pct": 84.3,
+      "strip_err_deg": 0.0,
+      "rac_feasible": true
+    },
+    {
+      "requested_parts": 80,
+      "placed_parts": 80,
+      "runtime_sec": 1.737,
+      "utilization_pct": 52.19,
+      "seam_pct": 84.3,
+      "strip_err_deg": 0.0,
+      "rac_feasible": true
+    },
+    {
+      "requested_parts": 120,
+      "placed_parts": 120,
+      "runtime_sec": 1.907,
+      "utilization_pct": 57.49,
+      "seam_pct": 84.3,
+      "strip_err_deg": 0.0,
+      "rac_feasible": true
+    },
+    {
+      "requested_parts": 160,
+      "placed_parts": 160,
+      "runtime_sec": 1.825,
+      "utilization_pct": 62.8,
+      "seam_pct": 84.3,
+      "strip_err_deg": 0.0,
+      "rac_feasible": true
+    }
+  ]
+}

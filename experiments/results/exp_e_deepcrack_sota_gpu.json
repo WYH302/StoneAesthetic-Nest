@@ -1,0 +1,71 @@
+{
+  "gpu_name": "NVIDIA GeForce RTX 3090",
+  "torch_version": "2.14.1+cu126",
+  "cuda_version": "12.6",
+  "methods": [
+    {
+      "method": "CrackUNet-Lite-DS (Ours, Opt. GPU)",
+      "device": "RTX 3090 (CUDA)",
+      "params": 404867,
+      "params_m": 0.4,
+      "train_epochs": 45,
+      "train_gpu_sec": 662.07,
+      "train_peak_vram_mib": 2855.6,
+      "infer_peak_vram_mib": 167.1,
+      "infer_ms_per_img": 81.6,
+      "infer_fps": 12.3,
+      "deepcrack_237_test": {
+        "strict_mean_iou_pct": 70.18,
+        "strict_mean_f1_pct": 80.86,
+        "strict_global_iou_pct": 71.59,
+        "strict_global_f1_pct": 83.44,
+        "strict_recall_pct": 78.66,
+        "buf3px_iou_pct": 67.87,
+        "buf3px_f1_pct": 79.4,
+        "safety_crack_recall_pct": 84.5
+      },
+      "deepcrack_20_subset": {
+        "strict_mean_iou_pct": 81.01,
+        "strict_mean_f1_pct": 89.18,
+        "strict_global_iou_pct": 80.77,
+        "strict_global_f1_pct": 89.36,
+        "strict_recall_pct": 96.96,
+        "buf3px_iou_pct": 85.76,
+        "buf3px_f1_pct": 92.19,
+        "safety_crack_recall_pct": 99.64
+      }
+    },
+    {
+      "method": "DeepCrack-Net (VGG16-MS, Liu et al. 2019)",
+      "device": "RTX 3090 (CUDA)",
+      "params": 14724619,
+      "params_m": 14.72,
+      "train_epochs": 22,
+      "train_gpu_sec": 963.88,
+      "train_peak_vram_mib": 1465.8,
+      "infer_peak_vram_mib": 354.5,
+      "infer_ms_per_img": 116.2,
+      "infer_fps": 8.6,
+      "deepcrack_237_test": {
+        "strict_mean_iou_pct": 69.27,
+        "strict_mean_f1_pct": 79.77,
+        "strict_global_iou_pct": 72.13,
+        "strict_global_f1_pct": 83.81,
+        "strict_recall_pct": 79.14,
+        "buf3px_iou_pct": 68.15,
+        "buf3px_f1_pct": 79.13,
+        "safety_crack_recall_pct": 84.48
+      },
+      "deepcrack_20_subset": {
+        "strict_mean_iou_pct": 81.33,
+        "strict_mean_f1_pct": 89.38,
+        "strict_global_iou_pct": 80.98,
+        "strict_global_f1_pct": 89.49,
+        "strict_recall_pct": 95.49,
+        "buf3px_iou_pct": 83.83,
+        "buf3px_f1_pct": 91.01,
+        "safety_crack_recall_pct": 99.57
+      }
+    }
+  ]
+}
