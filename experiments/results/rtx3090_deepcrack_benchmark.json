@@ -1,0 +1,173 @@
+{
+  "gpu_name": "NVIDIA GeForce RTX 3090",
+  "torch_version": "2.14.1+cu126",
+  "cuda_version": "12.6",
+  "deepcrack_official_train_n": 300,
+  "deepcrack_official_test_n": 237,
+  "deepcrack_subset_n": 20,
+  "total_wall_sec": 1603.69,
+  "total_gpu_sec": 1542.95,
+  "total_gpu_hours": 0.4286,
+  "methods": [
+    {
+      "method": "Otsu + Canny (CPU)",
+      "device": "CPU (Zero-GPU)",
+      "params": 0,
+      "params_m": 0.0,
+      "train_epochs": 0,
+      "train_gpu_sec": 0.0,
+      "train_peak_vram_mib": 0.0,
+      "infer_peak_vram_mib": 0.0,
+      "infer_ms_per_img": 3.54,
+      "infer_fps": 282.6,
+      "deepcrack_237_test": {
+        "strict_mean_iou_pct": 45.48,
+        "strict_mean_f1_pct": 58.62,
+        "strict_global_iou_pct": 38.79,
+        "strict_global_f1_pct": 55.9,
+        "strict_recall_pct": 85.87,
+        "buf3px_iou_pct": 38.83,
+        "buf3px_f1_pct": 52.07,
+        "safety_crack_recall_pct": 95.16
+      },
+      "deepcrack_20_subset": {
+        "strict_mean_iou_pct": 88.63,
+        "strict_mean_f1_pct": 93.37,
+        "strict_global_iou_pct": 87.78,
+        "strict_global_f1_pct": 93.49,
+        "strict_recall_pct": 94.35,
+        "buf3px_iou_pct": 79.41,
+        "buf3px_f1_pct": 88.11,
+        "safety_crack_recall_pct": 99.47
+      }
+    },
+    {
+      "method": "Black-Hat Adaptive (Ours, Zero-GPU)",
+      "device": "CPU (Zero-GPU)",
+      "params": 0,
+      "params_m": 0.0,
+      "train_epochs": 0,
+      "train_gpu_sec": 0.0,
+      "train_peak_vram_mib": 0.0,
+      "infer_peak_vram_mib": 0.0,
+      "infer_ms_per_img": 17.77,
+      "infer_fps": 56.3,
+      "deepcrack_237_test": {
+        "strict_mean_iou_pct": 54.75,
+        "strict_mean_f1_pct": 67.54,
+        "strict_global_iou_pct": 52.57,
+        "strict_global_f1_pct": 68.91,
+        "strict_recall_pct": 73.54,
+        "buf3px_iou_pct": 52.09,
+        "buf3px_f1_pct": 65.53,
+        "safety_crack_recall_pct": 84.57
+      },
+      "deepcrack_20_subset": {
+        "strict_mean_iou_pct": 88.63,
+        "strict_mean_f1_pct": 93.37,
+        "strict_global_iou_pct": 87.78,
+        "strict_global_f1_pct": 93.49,
+        "strict_recall_pct": 94.35,
+        "buf3px_iou_pct": 79.41,
+        "buf3px_f1_pct": 88.11,
+        "safety_crack_recall_pct": 99.47
+      }
+    },
+    {
+      "method": "CrackUNet-Lite (RTX 3090)",
+      "device": "RTX 3090 (CUDA)",
+      "params": 404769,
+      "params_m": 0.4,
+      "train_epochs": 35,
+      "train_gpu_sec": 1229.97,
+      "train_peak_vram_mib": 5690.6,
+      "infer_peak_vram_mib": 160.6,
+      "infer_ms_per_img": 28.96,
+      "infer_fps": 34.5,
+      "deepcrack_237_test": {
+        "strict_mean_iou_pct": 70.13,
+        "strict_mean_f1_pct": 80.64,
+        "strict_global_iou_pct": 71.66,
+        "strict_global_f1_pct": 83.49,
+        "strict_recall_pct": 79.45,
+        "buf3px_iou_pct": 68.51,
+        "buf3px_f1_pct": 79.68,
+        "safety_crack_recall_pct": 85.07
+      },
+      "deepcrack_20_subset": {
+        "strict_mean_iou_pct": 80.74,
+        "strict_mean_f1_pct": 89.01,
+        "strict_global_iou_pct": 80.52,
+        "strict_global_f1_pct": 89.21,
+        "strict_recall_pct": 96.91,
+        "buf3px_iou_pct": 85.95,
+        "buf3px_f1_pct": 92.31,
+        "safety_crack_recall_pct": 99.54
+      }
+    },
+    {
+      "method": "ResNet34-UNet (RTX 3090)",
+      "device": "RTX 3090 (CUDA)",
+      "params": 24429281,
+      "params_m": 24.43,
+      "train_epochs": 25,
+      "train_gpu_sec": 269.63,
+      "train_peak_vram_mib": 1460.7,
+      "infer_peak_vram_mib": 519.2,
+      "infer_ms_per_img": 32.53,
+      "infer_fps": 30.7,
+      "deepcrack_237_test": {
+        "strict_mean_iou_pct": 70.19,
+        "strict_mean_f1_pct": 81.36,
+        "strict_global_iou_pct": 73.16,
+        "strict_global_f1_pct": 84.5,
+        "strict_recall_pct": 88.35,
+        "buf3px_iou_pct": 76.43,
+        "buf3px_f1_pct": 85.74,
+        "safety_crack_recall_pct": 91.14
+      },
+      "deepcrack_20_subset": {
+        "strict_mean_iou_pct": 75.1,
+        "strict_mean_f1_pct": 85.25,
+        "strict_global_iou_pct": 74.42,
+        "strict_global_f1_pct": 85.33,
+        "strict_recall_pct": 97.05,
+        "buf3px_iou_pct": 87.8,
+        "buf3px_f1_pct": 93.35,
+        "safety_crack_recall_pct": 98.39
+      }
+    },
+    {
+      "method": "Meta SAM 2.1 Hiera-Tiny (Zero-Shot)",
+      "device": "RTX 3090 (CUDA)",
+      "params": 38962498,
+      "params_m": 38.96,
+      "train_epochs": 0,
+      "train_gpu_sec": 0.0,
+      "train_peak_vram_mib": 0.0,
+      "infer_peak_vram_mib": 501.8,
+      "infer_ms_per_img": 121.41,
+      "infer_fps": 8.2,
+      "deepcrack_237_test": {
+        "strict_mean_iou_pct": 49.66,
+        "strict_mean_f1_pct": 60.49,
+        "strict_global_iou_pct": 32.78,
+        "strict_global_f1_pct": 49.37,
+        "strict_recall_pct": 69.02,
+        "buf3px_iou_pct": 52.04,
+        "buf3px_f1_pct": 63.0,
+        "safety_crack_recall_pct": 75.41
+      },
+      "deepcrack_20_subset": {
+        "strict_mean_iou_pct": 81.38,
+        "strict_mean_f1_pct": 89.36,
+        "strict_global_iou_pct": 81.23,
+        "strict_global_f1_pct": 89.64,
+        "strict_recall_pct": 97.72,
+        "buf3px_iou_pct": 86.28,
+        "buf3px_f1_pct": 92.52,
+        "safety_crack_recall_pct": 99.95
+      }
+    }
+  ]
+}

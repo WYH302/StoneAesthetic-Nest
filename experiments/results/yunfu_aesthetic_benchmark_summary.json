@@ -1,0 +1,985 @@
+{
+  "benchmark": "YunfuPoly-24 (24 Real CC0 Uncut 3000x1800mm Slabs x 6 Polymorphic Custom Order Archetypes)",
+  "archetypes": [
+    {
+      "id": "A1_3x2Wall_Stairs_Tri",
+      "title": "A1: 3x2 Feature Wall + 8 Stairs + ▲▼ Triangles",
+      "order_cn": "核心件：切6个50x50厘米正方形（茶几/客厅主拼花，必须落在黄金主纹带，支持连纹对花）；主件：切8个20x80厘米长方形（楼梯踏步，必须顺纹连排、纹路不断）；边角料余料套裁：剩下的空隙和边角料，尽量帮我切一些等边三角形马赛克拼花砖（边长18厘米），锯缝留3mm，边距5mm，水刀加桥切。"
+    },
+    {
+      "id": "A2_1x4Screen_Sills_Hex",
+      "title": "A2: 1x4 Landscape Screen + 5 Sills + Hexagons",
+      "order_cn": "核心件：切4个42x88厘米四联屏（中式背景墙，必须落在黄金主纹带，支持连纹对花）；主件：切5个26x85厘米顺纹飘窗板（顺纹连排）；边角料余料套裁：剩下的空隙尽量切半径10厘米正六边形拼花砖，锯缝留3mm，边距5mm，水刀加桥切。"
+    },
+    {
+      "id": "A3_IslandSink_Circles_PiP",
+      "title": "A3: Hollow Sink Island + 2 Round Tables + PiP Coasters",
+      "order_cn": "核心件：切1个160x85厘米中岛挖孔台面（内孔68x46厘米，必须落在黄金主纹带，顺纹）；主件：切2个直径56厘米圆形茶几，再来4个18x80厘米顺纹挡水条；边角料余料套裁：空隙和水槽内孔尽量切16x16厘米小方砖茶盘垫，锯缝留3mm，边距5mm，水刀加桥切。"
+    },
+    {
+      "id": "A4_2x2Lobby_Thresholds_Tri",
+      "title": "A4: 2x2 Lobby Medallion + 6 Thresholds + ▲▼ Triangles",
+      "order_cn": "核心件：切4个60x60厘米正方形（酒店大堂田字格地拼，必须落在黄金主纹带，支持连纹对花）；主件：切6个18x86厘米顺纹门槛石（顺纹连排）；边角料余料套裁：剩下的空隙尽量切边长18厘米等边三角形马赛克，锯缝留3mm，边距5mm，水刀加桥切。"
+    },
+    {
+      "id": "A5_1x2TwinVanity_Dado_Hex",
+      "title": "A5: 1x2 Twin Vanity + 6 Wall Dado + Hexagons",
+      "order_cn": "核心件：切2个80x58厘米双联洗手台（双盆连纹洗手台面，必须落在黄金主纹带，支持连纹对花）；主件：切6个24x78厘米顺纹护墙板条（顺纹连排）；边角料余料套裁：剩下的空隙尽量切半径10厘米正六边形马赛克，锯缝留3mm，边距5mm，水刀加桥切。"
+    },
+    {
+      "id": "A6_LBar_Steps_Squares",
+      "title": "A6: L-Shape Tea Bar + 6 Step Treads + Floor Tiles",
+      "order_cn": "核心件：切1个135x95厘米L形转角吧台（茶室吧台，必须落在黄金主纹带，顺纹）；主件：切6个22x82厘米顺纹踏步板（顺纹连排）；边角料余料套裁：剩下的空隙尽量切17x17厘米防滑小地砖，锯缝留3mm，边距5mm，水刀加桥切。"
+    }
+  ],
+  "method_stats": {
+    "bl_heuristic": {
+      "seam_vein_continuity": {
+        "mean": 0.5335,
+        "std": 0.1951
+      },
+      "golden_zone_hit_rate": {
+        "mean": 0.2402,
+        "std": 0.1457
+      },
+      "stair_vein_error_deg": {
+        "mean": 30.5283,
+        "std": 14.6577
+      },
+      "bridge_saw_collinearity": {
+        "mean": 0.811,
+        "std": 0.1222
+      },
+      "tier3_mosaic_count": {
+        "mean": 4.5417,
+        "std": 3.1757
+      },
+      "utilization": {
+        "mean": 0.4416,
+        "std": 0.0299
+      },
+      "gross_output_cny": {
+        "mean": 5525.1813,
+        "std": 650.1007
+      },
+      "net_profit_cny": {
+        "mean": 1011.385,
+        "std": 641.5999
+      },
+      "runtime_sec": {
+        "mean": 0.2412,
+        "std": 0.1309
+      },
+      "wilcoxon_p_profit": 5.960464477539063e-08,
+      "wilcoxon_p_seam": 1.9401344384986863e-05
+    },
+    "packingsolver_official": {
+      "seam_vein_continuity": {
+        "mean": 0.4344,
+        "std": 0.1603
+      },
+      "golden_zone_hit_rate": {
+        "mean": 0.2223,
+        "std": 0.0942
+      },
+      "stair_vein_error_deg": {
+        "mean": 44.6063,
+        "std": 18.9654
+      },
+      "bridge_saw_collinearity": {
+        "mean": 0.7778,
+        "std": 0.2812
+      },
+      "tier3_mosaic_count": {
+        "mean": 35.3333,
+        "std": 5.0962
+      },
+      "utilization": {
+        "mean": 0.5698,
+        "std": 0.0398
+      },
+      "gross_output_cny": {
+        "mean": 6286.2733,
+        "std": 418.7931
+      },
+      "net_profit_cny": {
+        "mean": 1630.7738,
+        "std": 405.1094
+      },
+      "runtime_sec": {
+        "mean": 0.524,
+        "std": 1.0719
+      },
+      "wilcoxon_p_profit": 5.960464477539063e-08,
+      "wilcoxon_p_seam": 5.960464477539063e-08
+    },
+    "jagua_official": {
+      "seam_vein_continuity": {
+        "mean": 0.3419,
+        "std": 0.1857
+      },
+      "golden_zone_hit_rate": {
+        "mean": 0.3144,
+        "std": 0.2681
+      },
+      "stair_vein_error_deg": {
+        "mean": 72.4937,
+        "std": 13.5457
+      },
+      "bridge_saw_collinearity": {
+        "mean": 0.9049,
+        "std": 0.1406
+      },
+      "tier3_mosaic_count": {
+        "mean": 35.3333,
+        "std": 5.0962
+      },
+      "utilization": {
+        "mean": 0.5698,
+        "std": 0.0398
+      },
+      "gross_output_cny": {
+        "mean": 6052.1925,
+        "std": 478.6686
+      },
+      "net_profit_cny": {
+        "mean": 1408.7025,
+        "std": 467.8868
+      },
+      "runtime_sec": {
+        "mean": 1.6645,
+        "std": 1.777
+      },
+      "wilcoxon_p_profit": 5.960464477539063e-08,
+      "wilcoxon_p_seam": 2.980232238769531e-07
+    },
+    "sparrow_official": {
+      "seam_vein_continuity": {
+        "mean": 0.3301,
+        "std": 0.1564
+      },
+      "golden_zone_hit_rate": {
+        "mean": 0.1887,
+        "std": 0.1303
+      },
+      "stair_vein_error_deg": {
+        "mean": 55.1479,
+        "std": 21.2005
+      },
+      "bridge_saw_collinearity": {
+        "mean": 0.6875,
+        "std": 0.3605
+      },
+      "tier3_mosaic_count": {
+        "mean": 35.3333,
+        "std": 5.0962
+      },
+      "utilization": {
+        "mean": 0.5698,
+        "std": 0.0398
+      },
+      "gross_output_cny": {
+        "mean": 5936.04,
+        "std": 369.891
+      },
+      "net_profit_cny": {
+        "mean": 1272.0096,
+        "std": 352.2512
+      },
+      "runtime_sec": {
+        "mean": 4.1217,
+        "std": 1.6452
+      },
+      "wilcoxon_p_profit": 5.960464477539063e-08,
+      "wilcoxon_p_seam": 1.1920928955078125e-07
+    },
+    "rl_ppo_adapted": {
+      "seam_vein_continuity": {
+        "mean": 0.5262,
+        "std": 0.2012
+      },
+      "golden_zone_hit_rate": {
+        "mean": 0.2122,
+        "std": 0.1381
+      },
+      "stair_vein_error_deg": {
+        "mean": 25.0508,
+        "std": 11.8361
+      },
+      "bridge_saw_collinearity": {
+        "mean": 0.5243,
+        "std": 0.3308
+      },
+      "tier3_mosaic_count": {
+        "mean": 13.5417,
+        "std": 4.2629
+      },
+      "utilization": {
+        "mean": 0.4861,
+        "std": 0.0346
+      },
+      "gross_output_cny": {
+        "mean": 5854.3933,
+        "std": 716.0099
+      },
+      "net_profit_cny": {
+        "mean": 1273.0025,
+        "std": 725.3132
+      },
+      "runtime_sec": {
+        "mean": 0.7829,
+        "std": 0.4294
+      },
+      "wilcoxon_p_profit": 5.960464477539063e-08,
+      "wilcoxon_p_seam": 1.9401344384986863e-05
+    },
+    "gfpack_adapted": {
+      "seam_vein_continuity": {
+        "mean": 0.5262,
+        "std": 0.2012
+      },
+      "golden_zone_hit_rate": {
+        "mean": 0.2122,
+        "std": 0.1381
+      },
+      "stair_vein_error_deg": {
+        "mean": 22.0208,
+        "std": 14.3536
+      },
+      "bridge_saw_collinearity": {
+        "mean": 0.6319,
+        "std": 0.336
+      },
+      "tier3_mosaic_count": {
+        "mean": 13.4583,
+        "std": 4.4329
+      },
+      "utilization": {
+        "mean": 0.4854,
+        "std": 0.0353
+      },
+      "gross_output_cny": {
+        "mean": 5924.7004,
+        "std": 724.7305
+      },
+      "net_profit_cny": {
+        "mean": 1353.8571,
+        "std": 738.2941
+      },
+      "runtime_sec": {
+        "mean": 0.7526,
+        "std": 0.3759
+      },
+      "wilcoxon_p_profit": 5.960464477539063e-08,
+      "wilcoxon_p_seam": 1.9401344384986863e-05
+    },
+    "stone_aesthetic_ours": {
+      "seam_vein_continuity": {
+        "mean": 0.8678,
+        "std": 0.0435
+      },
+      "golden_zone_hit_rate": {
+        "mean": 0.9538,
+        "std": 0.0541
+      },
+      "stair_vein_error_deg": {
+        "mean": 0.0,
+        "std": 0.0
+      },
+      "bridge_saw_collinearity": {
+        "mean": 0.6101,
+        "std": 0.3467
+      },
+      "tier3_mosaic_count": {
+        "mean": 35.3333,
+        "std": 5.0962
+      },
+      "utilization": {
+        "mean": 0.5698,
+        "std": 0.0398
+      },
+      "gross_output_cny": {
+        "mean": 8420.2717,
+        "std": 272.2209
+      },
+      "net_profit_cny": {
+        "mean": 3748.9237,
+        "std": 281.4008
+      },
+      "runtime_sec": {
+        "mean": 1.9169,
+        "std": 1.0629
+      }
+    }
+  },
+  "archetype_breakdown": [
+    {
+      "archetype_id": "A1_3x2Wall_Stairs_Tri",
+      "archetype_label": "\\texttt{A1}: $3\\times2$ Wall + 8 Stairs + Tri",
+      "packingsolver_official": {
+        "seam_vein_continuity": 0.5323,
+        "golden_zone_hit_rate": 0.2261,
+        "stair_vein_error_deg": 57.7925,
+        "bridge_saw_collinearity": 0.75,
+        "tier3_mosaic_count": 42.0,
+        "utilization": 0.6239,
+        "gross_output_cny": 6518.7625,
+        "net_profit_cny": 1830.64
+      },
+      "jagua_official": {
+        "seam_vein_continuity": 0.2195,
+        "golden_zone_hit_rate": 0.7076,
+        "stair_vein_error_deg": 79.12,
+        "bridge_saw_collinearity": 1.0,
+        "tier3_mosaic_count": 42.0,
+        "utilization": 0.6239,
+        "gross_output_cny": 6474.4975,
+        "net_profit_cny": 1809.9975
+      },
+      "sparrow_official": {
+        "seam_vein_continuity": 0.2439,
+        "golden_zone_hit_rate": 0.3007,
+        "stair_vein_error_deg": 70.5925,
+        "bridge_saw_collinearity": 0.75,
+        "tier3_mosaic_count": 42.0,
+        "utilization": 0.6239,
+        "gross_output_cny": 5988.3875,
+        "net_profit_cny": 1300.2675
+      },
+      "stone_aesthetic_ours": {
+        "seam_vein_continuity": 0.8471,
+        "golden_zone_hit_rate": 0.9839,
+        "stair_vein_error_deg": 0.0,
+        "bridge_saw_collinearity": 0.6562,
+        "tier3_mosaic_count": 42.0,
+        "utilization": 0.6239,
+        "gross_output_cny": 8661.5775,
+        "net_profit_cny": 3964.595
+      }
+    },
+    {
+      "archetype_id": "A2_1x4Screen_Sills_Hex",
+      "archetype_label": "\\texttt{A2}: $1\\times4$ Screen + 5 Sills + Hex",
+      "packingsolver_official": {
+        "seam_vein_continuity": 0.6764,
+        "golden_zone_hit_rate": 0.2109,
+        "stair_vein_error_deg": 69.855,
+        "bridge_saw_collinearity": 1.0,
+        "tier3_mosaic_count": 30.0,
+        "utilization": 0.6227,
+        "gross_output_cny": 6495.0875,
+        "net_profit_cny": 1884.5875
+      },
+      "jagua_official": {
+        "seam_vein_continuity": 0.2453,
+        "golden_zone_hit_rate": 0.1429,
+        "stair_vein_error_deg": 65.54,
+        "bridge_saw_collinearity": 0.95,
+        "tier3_mosaic_count": 30.0,
+        "utilization": 0.6227,
+        "gross_output_cny": 5562.695,
+        "net_profit_cny": 947.47
+      },
+      "sparrow_official": {
+        "seam_vein_continuity": 0.4001,
+        "golden_zone_hit_rate": 0.1401,
+        "stair_vein_error_deg": 78.725,
+        "bridge_saw_collinearity": 1.0,
+        "tier3_mosaic_count": 30.0,
+        "utilization": 0.6227,
+        "gross_output_cny": 5836.7475,
+        "net_profit_cny": 1226.2475
+      },
+      "stone_aesthetic_ours": {
+        "seam_vein_continuity": 0.8959,
+        "golden_zone_hit_rate": 0.9167,
+        "stair_vein_error_deg": 0.0,
+        "bridge_saw_collinearity": 0.4,
+        "tier3_mosaic_count": 30.0,
+        "utilization": 0.6227,
+        "gross_output_cny": 8162.93,
+        "net_profit_cny": 3495.73
+      }
+    },
+    {
+      "archetype_id": "A3_IslandSink_Circles_PiP",
+      "archetype_label": "\\texttt{A3}: Sink Island + Circles + PiP",
+      "packingsolver_official": {
+        "seam_vein_continuity": 0.4264,
+        "golden_zone_hit_rate": 0.2324,
+        "stair_vein_error_deg": 22.695,
+        "bridge_saw_collinearity": 0.25,
+        "tier3_mosaic_count": 34.0,
+        "utilization": 0.552,
+        "gross_output_cny": 6303.2925,
+        "net_profit_cny": 1603.9175
+      },
+      "jagua_official": {
+        "seam_vein_continuity": 0.4264,
+        "golden_zone_hit_rate": 0.2324,
+        "stair_vein_error_deg": 59.725,
+        "bridge_saw_collinearity": 0.6875,
+        "tier3_mosaic_count": 34.0,
+        "utilization": 0.552,
+        "gross_output_cny": 5994.64,
+        "net_profit_cny": 1336.6125
+      },
+      "sparrow_official": {
+        "seam_vein_continuity": 0.4264,
+        "golden_zone_hit_rate": 0.2324,
+        "stair_vein_error_deg": 30.275,
+        "bridge_saw_collinearity": 0.0,
+        "tier3_mosaic_count": 34.0,
+        "utilization": 0.552,
+        "gross_output_cny": 6096.96,
+        "net_profit_cny": 1373.96
+      },
+      "stone_aesthetic_ours": {
+        "seam_vein_continuity": 0.8887,
+        "golden_zone_hit_rate": 0.9762,
+        "stair_vein_error_deg": 0.0,
+        "bridge_saw_collinearity": 0.4375,
+        "tier3_mosaic_count": 34.0,
+        "utilization": 0.552,
+        "gross_output_cny": 8366.83,
+        "net_profit_cny": 3685.175
+      }
+    },
+    {
+      "archetype_id": "A4_2x2Lobby_Thresholds_Tri",
+      "archetype_label": "\\texttt{A4}: $2\\times2$ Lobby + 6 Thresh + Tri",
+      "packingsolver_official": {
+        "seam_vein_continuity": 0.3883,
+        "golden_zone_hit_rate": 0.159,
+        "stair_vein_error_deg": 30.43,
+        "bridge_saw_collinearity": 0.8333,
+        "tier3_mosaic_count": 42.0,
+        "utilization": 0.5478,
+        "gross_output_cny": 6546.8475,
+        "net_profit_cny": 1866.5975
+      },
+      "jagua_official": {
+        "seam_vein_continuity": 0.2741,
+        "golden_zone_hit_rate": 0.5959,
+        "stair_vein_error_deg": 88.71,
+        "bridge_saw_collinearity": 1.0,
+        "tier3_mosaic_count": 42.0,
+        "utilization": 0.5478,
+        "gross_output_cny": 6452.9625,
+        "net_profit_cny": 1788.4625
+      },
+      "sparrow_official": {
+        "seam_vein_continuity": 0.2147,
+        "golden_zone_hit_rate": 0.2914,
+        "stair_vein_error_deg": 45.0,
+        "bridge_saw_collinearity": 0.875,
+        "tier3_mosaic_count": 42.0,
+        "utilization": 0.5478,
+        "gross_output_cny": 6069.925,
+        "net_profit_cny": 1393.6125
+      },
+      "stone_aesthetic_ours": {
+        "seam_vein_continuity": 0.8589,
+        "golden_zone_hit_rate": 0.8972,
+        "stair_vein_error_deg": 0.0,
+        "bridge_saw_collinearity": 0.625,
+        "tier3_mosaic_count": 42.0,
+        "utilization": 0.5478,
+        "gross_output_cny": 8581.485,
+        "net_profit_cny": 3881.5475
+      }
+    },
+    {
+      "archetype_id": "A5_1x2TwinVanity_Dado_Hex",
+      "archetype_label": "\\texttt{A5}: $1\\times2$ Vanity + 6 Dado + Hex",
+      "packingsolver_official": {
+        "seam_vein_continuity": 0.1675,
+        "golden_zone_hit_rate": 0.2548,
+        "stair_vein_error_deg": 54.7125,
+        "bridge_saw_collinearity": 1.0,
+        "tier3_mosaic_count": 30.0,
+        "utilization": 0.5242,
+        "gross_output_cny": 5432.32,
+        "net_profit_cny": 821.82
+      },
+      "jagua_official": {
+        "seam_vein_continuity": 0.4909,
+        "golden_zone_hit_rate": 0.0131,
+        "stair_vein_error_deg": 74.1425,
+        "bridge_saw_collinearity": 1.0,
+        "tier3_mosaic_count": 30.0,
+        "utilization": 0.5242,
+        "gross_output_cny": 5894.22,
+        "net_profit_cny": 1283.72
+      },
+      "sparrow_official": {
+        "seam_vein_continuity": 0.3144,
+        "golden_zone_hit_rate": 0.0131,
+        "stair_vein_error_deg": 74.1425,
+        "bridge_saw_collinearity": 1.0,
+        "tier3_mosaic_count": 30.0,
+        "utilization": 0.5242,
+        "gross_output_cny": 5521.5675,
+        "net_profit_cny": 911.0675
+      },
+      "stone_aesthetic_ours": {
+        "seam_vein_continuity": 0.8019,
+        "golden_zone_hit_rate": 0.9498,
+        "stair_vein_error_deg": 0.0,
+        "bridge_saw_collinearity": 0.7917,
+        "tier3_mosaic_count": 30.0,
+        "utilization": 0.5242,
+        "gross_output_cny": 8168.5975,
+        "net_profit_cny": 3538.41
+      }
+    },
+    {
+      "archetype_id": "A6_LBar_Steps_Squares",
+      "archetype_label": "\\texttt{A6}: L-Bar + 6 Steps + Squares",
+      "packingsolver_official": {
+        "seam_vein_continuity": 0.4157,
+        "golden_zone_hit_rate": 0.2506,
+        "stair_vein_error_deg": 32.1525,
+        "bridge_saw_collinearity": 0.8333,
+        "tier3_mosaic_count": 34.0,
+        "utilization": 0.5481,
+        "gross_output_cny": 6421.33,
+        "net_profit_cny": 1777.08
+      },
+      "jagua_official": {
+        "seam_vein_continuity": 0.3955,
+        "golden_zone_hit_rate": 0.1943,
+        "stair_vein_error_deg": 67.725,
+        "bridge_saw_collinearity": 0.7916,
+        "tier3_mosaic_count": 34.0,
+        "utilization": 0.5481,
+        "gross_output_cny": 5934.14,
+        "net_profit_cny": 1285.9525
+      },
+      "sparrow_official": {
+        "seam_vein_continuity": 0.3811,
+        "golden_zone_hit_rate": 0.1545,
+        "stair_vein_error_deg": 32.1525,
+        "bridge_saw_collinearity": 0.5,
+        "tier3_mosaic_count": 34.0,
+        "utilization": 0.5481,
+        "gross_output_cny": 6102.6525,
+        "net_profit_cny": 1426.9025
+      },
+      "stone_aesthetic_ours": {
+        "seam_vein_continuity": 0.9143,
+        "golden_zone_hit_rate": 0.9993,
+        "stair_vein_error_deg": 0.0,
+        "bridge_saw_collinearity": 0.75,
+        "tier3_mosaic_count": 34.0,
+        "utilization": 0.5481,
+        "gross_output_cny": 8580.21,
+        "net_profit_cny": 3928.085
+      }
+    }
+  ],
+  "ablation_summary": {
+    "full_ours": {
+      "seam_vein_continuity": 0.8678,
+      "golden_zone_hit_rate": 0.9538,
+      "stair_vein_error_deg": 0.0,
+      "tier3_mosaic_count": 35.3333,
+      "utilization": 0.5698,
+      "gross_output_cny": 8420.2717,
+      "net_profit_cny": 3748.9237
+    },
+    "no_vein_match": {
+      "seam_vein_continuity": 0.5262,
+      "golden_zone_hit_rate": 0.2122,
+      "stair_vein_error_deg": 22.0208,
+      "tier3_mosaic_count": 13.4583,
+      "utilization": 0.4854,
+      "gross_output_cny": 5924.7004,
+      "net_profit_cny": 1353.8571
+    },
+    "no_neural_ranker": {
+      "seam_vein_continuity": 0.7833,
+      "golden_zone_hit_rate": 0.2832,
+      "stair_vein_error_deg": 0.0,
+      "tier3_mosaic_count": 35.3333,
+      "utilization": 0.5698,
+      "gross_output_cny": 7639.775,
+      "net_profit_cny": 2992.7088
+    },
+    "no_tandem_treads": {
+      "seam_vein_continuity": 0.8702,
+      "golden_zone_hit_rate": 0.9794,
+      "stair_vein_error_deg": 79.7812,
+      "tier3_mosaic_count": 35.3333,
+      "utilization": 0.5698,
+      "gross_output_cny": 7898.0062,
+      "net_profit_cny": 3262.5221
+    },
+    "no_honeycomb_lns": {
+      "seam_vein_continuity": 0.8678,
+      "golden_zone_hit_rate": 0.9538,
+      "stair_vein_error_deg": 0.0,
+      "tier3_mosaic_count": 0.0,
+      "utilization": 0.4281,
+      "gross_output_cny": 7183.605,
+      "net_profit_cny": 2671.2571
+    }
+  },
+  "five_fold_cv": {
+    "n_folds": 5,
+    "total_cv_wall_sec": 51.7,
+    "folds": [
+      {
+        "fold": 1,
+        "val_pairwise_acc": 1.0,
+        "seam_vein_continuity": 0.8846,
+        "golden_zone_hit_rate": 0.949,
+        "stair_vein_error_deg": 0.0,
+        "tier3_mosaic_count": 35.33,
+        "utilization": 0.5982,
+        "net_profit_cny": 3716.32,
+        "fold_wall_sec": 16.04
+      },
+      {
+        "fold": 2,
+        "val_pairwise_acc": 1.0,
+        "seam_vein_continuity": 0.9062,
+        "golden_zone_hit_rate": 0.9494,
+        "stair_vein_error_deg": 0.0,
+        "tier3_mosaic_count": 36.67,
+        "utilization": 0.5493,
+        "net_profit_cny": 3946.98,
+        "fold_wall_sec": 15.85
+      },
+      {
+        "fold": 3,
+        "val_pairwise_acc": 1.0,
+        "seam_vein_continuity": 0.8481,
+        "golden_zone_hit_rate": 0.9486,
+        "stair_vein_error_deg": 0.0,
+        "tier3_mosaic_count": 38.0,
+        "utilization": 0.5499,
+        "net_profit_cny": 3659.32,
+        "fold_wall_sec": 8.03
+      },
+      {
+        "fold": 4,
+        "val_pairwise_acc": 1.0,
+        "seam_vein_continuity": 0.8706,
+        "golden_zone_hit_rate": 0.977,
+        "stair_vein_error_deg": 0.0,
+        "tier3_mosaic_count": 36.0,
+        "utilization": 0.6233,
+        "net_profit_cny": 3800.87,
+        "fold_wall_sec": 7.48
+      },
+      {
+        "fold": 5,
+        "val_pairwise_acc": 1.0,
+        "seam_vein_continuity": 0.8019,
+        "golden_zone_hit_rate": 0.9498,
+        "stair_vein_error_deg": 0.0,
+        "tier3_mosaic_count": 30.0,
+        "utilization": 0.5242,
+        "net_profit_cny": 3538.41,
+        "fold_wall_sec": 4.24
+      }
+    ],
+    "oof_mean": {
+      "val_pairwise_acc": 1.0,
+      "seam_vein_continuity": 0.8623,
+      "golden_zone_hit_rate": 0.9548,
+      "stair_vein_error_deg": 0.0,
+      "tier3_mosaic_count": 35.2,
+      "utilization": 0.569,
+      "net_profit_cny": 3732.38
+    },
+    "oof_std": {
+      "val_pairwise_acc": 0.0,
+      "seam_vein_continuity": 0.0398,
+      "golden_zone_hit_rate": 0.0124,
+      "stair_vein_error_deg": 0.0,
+      "tier3_mosaic_count": 3.0699,
+      "utilization": 0.0405,
+      "net_profit_cny": 153.2678
+    }
+  },
+  "esicup_14_native_official": {
+    "num_instances": 14,
+    "wall_sec": 109.23,
+    "sparrow_mean_density": 0.7938,
+    "sparrow_std_density": 0.0896,
+    "jagua_mean_density": 0.7042,
+    "jagua_std_density": 0.089,
+    "per_instance": [
+      {
+        "instance": "albano",
+        "sparrow_density": 0.833217,
+        "sparrow_width": 10448.025,
+        "jagua_density": 0.751094,
+        "jagua_width": 11590.383,
+        "items": 24,
+        "sparrow_60s_density": 0.879957,
+        "sparrow_60s_width": 9893.063
+      },
+      {
+        "instance": "blaz1",
+        "sparrow_density": 0.775114,
+        "sparrow_width": 27.864,
+        "jagua_density": 0.713218,
+        "jagua_width": 30.282,
+        "items": 28,
+        "sparrow_60s_density": 0.816102,
+        "sparrow_60s_width": 26.465
+      },
+      {
+        "instance": "dagli",
+        "sparrow_density": 0.821018,
+        "sparrow_width": 61.6,
+        "jagua_density": 0.717735,
+        "jagua_width": 70.465,
+        "items": 30,
+        "sparrow_60s_density": 0.848916,
+        "sparrow_60s_width": 59.576
+      },
+      {
+        "instance": "fu",
+        "sparrow_density": 0.889124,
+        "sparrow_width": 32.051,
+        "jagua_density": 0.722594,
+        "jagua_width": 39.437,
+        "items": 12,
+        "sparrow_60s_density": 0.910878,
+        "sparrow_60s_width": 31.285
+      },
+      {
+        "instance": "gardeyn0",
+        "sparrow_density": 0.855106,
+        "sparrow_width": 51153.008,
+        "jagua_density": 0.804942,
+        "jagua_width": 54340.89,
+        "items": 50,
+        "sparrow_60s_density": 0.88368,
+        "sparrow_60s_width": 49499.008
+      },
+      {
+        "instance": "jakobs1",
+        "sparrow_density": 0.828286,
+        "sparrow_width": 11.83,
+        "jagua_density": 0.69652,
+        "jagua_width": 14.069,
+        "items": 25,
+        "sparrow_60s_density": 0.890663,
+        "sparrow_60s_width": 11.002
+      },
+      {
+        "instance": "jakobs2",
+        "sparrow_density": 0.756787,
+        "sparrow_width": 25.5,
+        "jagua_density": 0.62245,
+        "jagua_width": 31.003,
+        "items": 25,
+        "sparrow_60s_density": 0.82953,
+        "sparrow_60s_width": 23.264
+      },
+      {
+        "instance": "mao",
+        "sparrow_density": 0.82814,
+        "sparrow_width": 1779.853,
+        "jagua_density": 0.749925,
+        "jagua_width": 1965.486,
+        "items": 20,
+        "sparrow_60s_density": 0.844353,
+        "sparrow_60s_width": 1745.677
+      },
+      {
+        "instance": "marques",
+        "sparrow_density": 0.875485,
+        "sparrow_width": 79.011,
+        "jagua_density": 0.768455,
+        "jagua_width": 90.016,
+        "items": 24,
+        "sparrow_60s_density": 0.894359,
+        "sparrow_60s_width": 77.344
+      },
+      {
+        "instance": "shapes0",
+        "sparrow_density": 0.595266,
+        "sparrow_width": 67.022,
+        "jagua_density": 0.53778,
+        "jagua_width": 74.187,
+        "items": 43,
+        "sparrow_60s_density": 0.664822,
+        "sparrow_60s_width": 60.01
+      },
+      {
+        "instance": "shapes1",
+        "sparrow_density": 0.642635,
+        "sparrow_width": 62.082,
+        "jagua_density": 0.567678,
+        "jagua_width": 70.279,
+        "items": 43,
+        "sparrow_60s_density": 0.738787,
+        "sparrow_60s_width": 54.002
+      },
+      {
+        "instance": "shirts",
+        "sparrow_density": 0.84029,
+        "sparrow_width": 64.264,
+        "jagua_density": 0.786854,
+        "jagua_width": 68.628,
+        "items": 99,
+        "sparrow_60s_density": 0.884502,
+        "sparrow_60s_width": 61.051
+      },
+      {
+        "instance": "swim",
+        "sparrow_density": 0.702584,
+        "sparrow_width": 6296.306,
+        "jagua_density": 0.601073,
+        "jagua_width": 7359.65,
+        "items": 48,
+        "sparrow_60s_density": 0.760417,
+        "sparrow_60s_width": 5817.444
+      },
+      {
+        "instance": "trousers",
+        "sparrow_density": 0.869785,
+        "sparrow_width": 250.411,
+        "jagua_density": 0.819028,
+        "jagua_width": 265.93,
+        "items": 64,
+        "sparrow_60s_density": 0.90535,
+        "sparrow_60s_width": 240.574
+      }
+    ],
+    "sparrow_60s_mean_density": 0.8395,
+    "sparrow_60s_std_density": 0.0725,
+    "sparrow_60s_wall_sec": 465.27
+  },
+  "baldacci_6_public_defective": {
+    "num_instances": 6,
+    "wall_sec": 1000.75,
+    "jagua_mean_bin0_density": 0.5097,
+    "ps_mean_placed": 13.0,
+    "ps_mean_util": 0.704,
+    "ours_mean_placed": 12.17,
+    "ours_mean_util": 0.6587,
+    "per_instance": [
+      {
+        "instance": "baldacci1",
+        "num_defects": 7,
+        "jagua_full_bins": 8,
+        "jagua_bin0_density": 0.522232,
+        "ps_bin0_placed": 15,
+        "ps_bin0_util": 0.690651,
+        "ours_bin0_placed": 14,
+        "ours_bin0_util": 0.648475
+      },
+      {
+        "instance": "baldacci2",
+        "num_defects": 7,
+        "jagua_full_bins": 7,
+        "jagua_bin0_density": 0.435948,
+        "ps_bin0_placed": 16,
+        "ps_bin0_util": 0.651127,
+        "ours_bin0_placed": 11,
+        "ours_bin0_util": 0.61262
+      },
+      {
+        "instance": "baldacci3",
+        "num_defects": 6,
+        "jagua_full_bins": 6,
+        "jagua_bin0_density": 0.553369,
+        "ps_bin0_placed": 16,
+        "ps_bin0_util": 0.805845,
+        "ours_bin0_placed": 16,
+        "ours_bin0_util": 0.743946
+      },
+      {
+        "instance": "baldacci4",
+        "num_defects": 6,
+        "jagua_full_bins": 6,
+        "jagua_bin0_density": 0.531553,
+        "ps_bin0_placed": 14,
+        "ps_bin0_util": 0.841255,
+        "ours_bin0_placed": 16,
+        "ours_bin0_util": 0.789117
+      },
+      {
+        "instance": "baldacci5",
+        "num_defects": 7,
+        "jagua_full_bins": 12,
+        "jagua_bin0_density": 0.484709,
+        "ps_bin0_placed": 9,
+        "ps_bin0_util": 0.619316,
+        "ours_bin0_placed": 8,
+        "ours_bin0_util": 0.569536
+      },
+      {
+        "instance": "baldacci6",
+        "num_defects": 7,
+        "jagua_full_bins": 15,
+        "jagua_bin0_density": 0.530505,
+        "ps_bin0_placed": 8,
+        "ps_bin0_util": 0.615884,
+        "ours_bin0_placed": 8,
+        "ours_bin0_util": 0.58849
+      }
+    ]
+  },
+  "compute_audit": {
+    "training": {
+      "aesthetic_ranker": {
+        "weights_path": "experiments\\results\\aesthetic_vein_ranker.pt",
+        "num_params": 3085,
+        "num_pairs": 600,
+        "epochs": 90,
+        "initial_loss": 0.0,
+        "final_loss": 0.0,
+        "pairwise_accuracy": 1.0,
+        "train_wall_sec": 4.2126
+      },
+      "fc_ranker": {
+        "weights_path": "experiments\\results\\mlp_ranker_weights.pt",
+        "num_pairs": 400,
+        "epochs": 60,
+        "initial_loss": 0.0,
+        "final_loss": 0.0,
+        "pairwise_accuracy": 1.0
+      },
+      "rl_ppo_policy": {
+        "weights_path": "experiments\\results\\rl_ppo_policy_weights.pt",
+        "num_params": 2988,
+        "epochs": 70,
+        "train_wall_sec": 0.1822
+      },
+      "gfpack_score_net": {
+        "weights_path": "experiments\\results\\gfpack_score_weights.pt",
+        "num_params": 2827,
+        "epochs": 70,
+        "train_wall_sec": 0.1197
+      },
+      "total_training_wall_sec": 4.7431
+    },
+    "total_wall_sec": 1586.42
+  },
+  "flagship_deliverables": {
+    "A1": {
+      "overlay_png": "showcase_dxf_and_overlays\\yunfu_luxury_flagship\\yunfu_jade_onyx_01_overlay.png",
+      "dry_lay_preview_png": "showcase_dxf_and_overlays\\yunfu_luxury_flagship\\yunfu_jade_onyx_01_dry_lay_preview.png",
+      "vein_gallery_png": "showcase_dxf_and_overlays\\yunfu_luxury_flagship\\yunfu_jade_onyx_01_vein_gallery.png",
+      "layout_svg": "showcase_dxf_and_overlays\\yunfu_luxury_flagship\\yunfu_jade_onyx_01_layout.svg",
+      "cutting_dxf": "showcase_dxf_and_overlays\\yunfu_luxury_flagship\\yunfu_jade_onyx_01_cutting.dxf",
+      "report_json": "showcase_dxf_and_overlays\\yunfu_luxury_flagship\\yunfu_jade_onyx_01_report.json"
+    },
+    "A3_SinkHole_PiP": {
+      "overlay_png": "showcase_dxf_and_overlays\\yunfu_luxury_flagship\\yunfu_island_sink_pip_03_overlay.png",
+      "dry_lay_preview_png": "showcase_dxf_and_overlays\\yunfu_luxury_flagship\\yunfu_island_sink_pip_03_dry_lay_preview.png",
+      "vein_gallery_png": "showcase_dxf_and_overlays\\yunfu_luxury_flagship\\yunfu_island_sink_pip_03_vein_gallery.png",
+      "layout_svg": "showcase_dxf_and_overlays\\yunfu_luxury_flagship\\yunfu_island_sink_pip_03_layout.svg",
+      "cutting_dxf": "showcase_dxf_and_overlays\\yunfu_luxury_flagship\\yunfu_island_sink_pip_03_cutting.dxf",
+      "report_json": "showcase_dxf_and_overlays\\yunfu_luxury_flagship\\yunfu_island_sink_pip_03_report.json"
+    }
+  }
+}

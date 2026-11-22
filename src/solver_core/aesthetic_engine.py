@@ -518,12 +518,12 @@ def solve_aesthetic_stone_nesting(
                     # Combine learned neural aesthetic score with Tier-2 strip lookahead bonus (feat[:, 9])
                     raw_nn = ranker(feats_t).numpy()
                     scores_np = raw_nn + 2.4 * feats_t[:, 9].numpy()
-                top_order = list(np.argsort(-scores_np)[:18])
+                top_order = list(np.argsort(-scores_np)[:48])
             else:
                 scores_np = np.array([c[1] for c in manifold_candidates], dtype=np.float32)
                 top_order = [int(np.argmax(scores_np))]
 
-            # Bi-level lookahead over top neural Golden-Zone manifolds to ensure maximum Tier-2 tread fulfillment
+            # Bi-level lookahead over top neural Golden-Zone manifolds with hard Tier-2 feasibility tie-breaking
             best_i = int(top_order[0])
             if ranker is not None and tier2_items and enable_tandem_treads:
                 th2_lk = _pick_closest_allowed_angle(tier2_items[0]["rotations"], vein_deg)
@@ -536,8 +536,12 @@ def solve_aesthetic_stone_nesting(
                 st_u = (b2x2 - b2x1) + kerf + 0.3
                 st_v = (b2y2 - b2y1) + kerf + 0.3
 
-                best_lk_tuple = (-1, -1e9)
-                for cand_idx in top_order:
+                best_lk_tuple: tuple[int, int, float] = (0, -1, -1e9)
+                n_req_t2 = len(tier2_items)
+                for rank_pos, cand_idx in enumerate(top_order):
+                    # Fast exit after inspecting top-18 if a full-feasibility Golden-Zone solution is already locked
+                    if rank_pos >= 18 and best_lk_tuple[0] == 1:
+                        break
                     c_tiles = manifold_candidates[int(cand_idx)][2]
                     sim_recs = [
                         {
@@ -552,8 +556,8 @@ def solve_aesthetic_stone_nesting(
                     ]
                     fit_t2 = 0
                     seeds_xy: list[tuple[float, float]] = []
-                    for yy_s in np.linspace(margin - by1_2, height - margin - by2_2, 11):
-                        for xx_s in np.linspace(margin - bx1_2, width - margin - bx2_2, 13):
+                    for yy_s in np.linspace(margin - by1_2, height - margin - by2_2, 13):
+                        for xx_s in np.linspace(margin - bx1_2, width - margin - bx2_2, 15):
                             seeds_xy.append((float(xx_s), float(yy_s)))
                     placed_xy2: list[tuple[float, float]] = []
                     for _ in tier2_items:
@@ -595,10 +599,11 @@ def solve_aesthetic_stone_nesting(
                                 break
                         if not got_one:
                             break
-                    # Require strong Golden-Zone presence (>= 60%) when full 8/8 treads are achievable
+                    # Require strong Golden-Zone presence (>= 55%) and prioritize hard Tier-2 completeness (n_cap >= |T2|)
                     g_val = float(manifold_candidates[int(cand_idx)][0][0])
                     eff_fit = fit_t2 if g_val >= 0.55 else max(0, fit_t2 - 2)
-                    lk_key = (eff_fit, float(scores_np[int(cand_idx)]))
+                    full_ok = 1 if (fit_t2 >= n_req_t2 and g_val >= 0.55) else 0
+                    lk_key = (full_ok, eff_fit, float(scores_np[int(cand_idx)]))
                     if lk_key > best_lk_tuple:
                         best_lk_tuple = lk_key
                         best_i = int(cand_idx)
@@ -727,100 +732,119 @@ def solve_aesthetic_stone_nesting(
         perp_ux, perp_uy = -math.sin(vein_rad), math.cos(vein_rad)
 
         # Group Tier-2 items by type/size so identical stair treads form collinear tandem ribbons
-        t2_placed_temp: list[tuple[dict[str, Any], float, float, float, PolygonCoords, float, dict[str, float]]] = []
+        base_records_snapshot = list(placed_records)
+        base_tex_penalty = float(total_tex_penalty)
 
-        for it in tier2_items:
-            theta2 = _pick_closest_allowed_angle(it["rotations"], vein_deg) if enable_tandem_treads else it["rotations"][0]
-            rot_p2 = rotate_polygon(it["base_polygon"], theta2)
-            bx1, by1, bx2, by2 = bbox(rot_p2)
-            tw = bx2 - bx1
-            th_h = by2 - by1
+        def _run_tier2_pass(compact_mode: bool = False) -> tuple[
+            list[dict[str, Any]],
+            list[tuple[dict[str, Any], float, float, float, PolygonCoords, float, dict[str, float]]],
+            float,
+        ]:
+            local_recs = list(base_records_snapshot)
+            local_placed: list[tuple[dict[str, Any], float, float, float, PolygonCoords, float, dict[str, float]]] = []
+            local_tex = base_tex_penalty
+            for it in tier2_items:
+                theta2 = _pick_closest_allowed_angle(it["rotations"], vein_deg) if enable_tandem_treads else it["rotations"][0]
+                rot_p2 = rotate_polygon(it["base_polygon"], theta2)
+                bx1, by1, bx2, by2 = bbox(rot_p2)
 
-            # Build candidate anchors:
-            # 1) Exact tandem head-to-tail & parallel strip anchors relative to already placed Tier-2 treads!
-            cand_pts: list[tuple[float, float, float]] = []  # (x, y, tandem_bonus)
-            th_rad = math.radians(theta2)
-            ux, uy = math.cos(th_rad), math.sin(th_rad)
-            vx, vy = -math.sin(th_rad), math.cos(th_rad)
-            # Determine along-axis and cross-axis dimensions of base_polygon
-            base_x1, base_y1, base_x2, base_y2 = bbox(it["base_polygon"])
-            len_along = base_x2 - base_x1
-            len_cross = base_y2 - base_y1
+                cand_pts: list[tuple[float, float, float]] = []
+                th_rad = math.radians(theta2)
+                ux, uy = math.cos(th_rad), math.sin(th_rad)
+                vx, vy = -math.sin(th_rad), math.cos(th_rad)
+                base_x1, base_y1, base_x2, base_y2 = bbox(it["base_polygon"])
+                len_along = base_x2 - base_x1
+                len_cross = base_y2 - base_y1
 
-            for _, px0, py0, pth0, _, _, _ in t2_placed_temp:
-                if abs(pth0 - theta2) < 1e-2:
-                    # Head-to-tail tandem continuation (顺纹首尾连排 — unbroken grain across consecutive stair steps!)
-                    step_along = len_along + kerf + 0.25
-                    step_cross = len_cross + kerf + 0.25
-                    cand_pts.append((px0 + step_along * ux, py0 + step_along * uy, 2.8))
-                    cand_pts.append((px0 - step_along * ux, py0 - step_along * uy, 2.8))
-                    # Parallel collinear bridge-saw strip row
-                    cand_pts.append((px0 + step_cross * vx, py0 + step_cross * vy, 2.1))
-                    cand_pts.append((px0 - step_cross * vx, py0 - step_cross * vy, 2.1))
+                for _, px0, py0, pth0, _, _, _ in local_placed:
+                    if abs(pth0 - theta2) < 1e-2:
+                        step_along = len_along + kerf + 0.25
+                        step_cross = len_cross + kerf + 0.25
+                        cand_pts.append((px0 + step_along * ux, py0 + step_along * uy, 2.8))
+                        cand_pts.append((px0 - step_along * ux, py0 - step_along * uy, 2.8))
+                        cand_pts.append((px0 + step_cross * vx, py0 + step_cross * vy, 2.4 if compact_mode else 2.1))
+                        cand_pts.append((px0 - step_cross * vx, py0 - step_cross * vy, 2.4 if compact_mode else 2.1))
 
-            # 2) Tangents adjacent to Tier-1 block (collinear cut lines!) + fine grid sweep
-            for rec in placed_records:
-                rx1, ry1, rx2, ry2 = rec["bbox"]
-                for gx in [margin - bx1, rx1 - bx1, rx2 + kerf + 0.3 - bx1, rx1 - kerf - 0.3 - bx2]:
-                    for gy in [margin - by1, ry1 - by1, ry2 + kerf + 0.3 - by1, ry1 - kerf - 0.3 - by2]:
-                        cand_pts.append((gx, gy, 0.9))
+                for rec in local_recs:
+                    rx1, ry1, rx2, ry2 = rec["bbox"]
+                    gx_list = [margin - bx1, rx1 - bx1, rx2 + kerf + 0.3 - bx1, rx1 - kerf - 0.3 - bx2]
+                    gy_list = [margin - by1, ry1 - by1, ry2 + kerf + 0.3 - by1, ry1 - kerf - 0.3 - by2]
+                    if compact_mode:
+                        gx_list.append(width - margin - bx2)
+                        gy_list.append(height - margin - by2)
+                    for gx in gx_list:
+                        for gy in gy_list:
+                            cand_pts.append((gx, gy, 0.9))
 
-            g_step_x = max(28.0, (width - 2 * margin) / 38.0)
-            g_step_y = max(25.0, (height - 2 * margin) / 32.0)
-            yg = margin - by1
-            while yg <= height - margin - by2 + 1e-3:
-                xg = margin - bx1
-                while xg <= width - margin - bx2 + 1e-3:
-                    cand_pts.append((xg, yg, 0.0))
-                    xg += g_step_x
-                yg += g_step_y
+                n_gx = 52 if compact_mode else 38
+                n_gy = 42 if compact_mode else 32
+                g_step_x = max(20.0 if compact_mode else 28.0, (width - 2 * margin) / float(n_gx))
+                g_step_y = max(18.0 if compact_mode else 25.0, (height - 2 * margin) / float(n_gy))
+                yg = margin - by1
+                while yg <= height - margin - by2 + 1e-3:
+                    xg = margin - bx1
+                    while xg <= width - margin - bx2 + 1e-3:
+                        cand_pts.append((xg, yg, 0.0))
+                        xg += g_step_x
+                    yg += g_step_y
 
-            best_t2: tuple[float, float, float, PolygonCoords] | None = None
-            seen_keys: set[tuple[int, int]] = set()
-            for cx, cy, t_bonus in cand_pts:
-                if cx + bx1 < margin - 1e-3 or cx + bx2 > width - margin + 1e-3:
-                    continue
-                if cy + by1 < margin - 1e-3 or cy + by2 > height - margin + 1e-3:
-                    continue
-                k_xy = (int(round(cx)), int(round(cy)))
-                if k_xy in seen_keys:
-                    continue
-                seen_keys.add(k_xy)
+                best_t2: tuple[float, float, float, PolygonCoords] | None = None
+                seen_keys: set[tuple[int, int]] = set()
+                for cx, cy, t_bonus in cand_pts:
+                    if cx + bx1 < margin - 1e-3 or cx + bx2 > width - margin + 1e-3:
+                        continue
+                    if cy + by1 < margin - 1e-3 or cy + by2 > height - margin + 1e-3:
+                        continue
+                    k_xy = (int(round(cx)), int(round(cy)))
+                    if k_xy in seen_keys:
+                        continue
+                    seen_keys.add(k_xy)
 
-                pw = translate_polygon(rot_p2, cx, cy)
-                ok, _ = check_placement_feasible(
-                    pw, placed_records, obstacle_shps, width, height, margin, kerf, 0.0, cut_mode
-                )
-                if not ok:
-                    continue
+                    pw = translate_polygon(rot_p2, cx, cy)
+                    ok, _ = check_placement_feasible(
+                        pw, local_recs, obstacle_shps, width, height, margin, kerf, 0.0, cut_mode
+                    )
+                    if not ok:
+                        continue
 
-                sal_v = _sample_field_at_poly(pw, width, height, energy_grid, 0.55)
-                blem_v = _sample_field_at_poly(pw, width, height, blemish_grid, 0.2)
-                # Prefer clean grain, high tandem bonus, and compact strip alignment near edges/Tier-1
-                wall_contact = 0.45 if (abs(cy + by1 - margin) < 12.0 or abs(cy + by2 - (height - margin)) < 12.0) else 0.0
-                left_bias = -0.25 * ((cx + bx1) / max(1.0, width)) - 0.20 * ((cy + by1) / max(1.0, height))
-                sc = t_bonus + 0.95 * sal_v - 1.15 * blem_v + wall_contact + left_bias
-                if best_t2 is None or sc > best_t2[0]:
-                    best_t2 = (sc, cx, cy, pw)
+                    sal_v = _sample_field_at_poly(pw, width, height, energy_grid, 0.55)
+                    blem_v = _sample_field_at_poly(pw, width, height, blemish_grid, 0.2)
+                    wall_contact = 0.45 if (abs(cy + by1 - margin) < 12.0 or abs(cy + by2 - (height - margin)) < 12.0) else 0.0
+                    if compact_mode:
+                        edge_hug = 0.75 if (abs(cx + bx1 - margin) < 15.0 or abs(cx + bx2 - (width - margin)) < 15.0) else 0.0
+                        compact_bias = -1.35 * ((cy + by1) / max(1.0, height)) - 0.85 * ((cx + bx1) / max(1.0, width))
+                        sc = t_bonus + 0.35 * sal_v - 0.50 * blem_v + wall_contact + edge_hug + compact_bias
+                    else:
+                        left_bias = -0.25 * ((cx + bx1) / max(1.0, width)) - 0.20 * ((cy + by1) / max(1.0, height))
+                        sc = t_bonus + 0.95 * sal_v - 1.15 * blem_v + wall_contact + left_bias
+                    if best_t2 is None or sc > best_t2[0]:
+                        best_t2 = (sc, cx, cy, pw)
 
-            if best_t2 is not None:
-                sc, cx, cy, pw = best_t2
-                tex_info = evaluate_placement_texture_cost(
-                    pw, theta2, width, height, texture_field, grain_locked=True, priority=2
-                )
-                placed_records.append(
-                    {
-                        "item_instance_id": it["item_instance_id"],
-                        "shapely_outer": ShapelyPolygon(pw),
-                        "shapely_hole": None,
-                        "hole_polygon_world": None,
-                        "bbox": bbox(pw),
-                        "area": float(it["area"]),
-                        "tier": 2,
-                    }
-                )
-                total_tex_penalty += float(tex_info["total_texture_penalty"])
-                t2_placed_temp.append((it, cx, cy, theta2, pw, sc, tex_info))
+                if best_t2 is not None:
+                    sc, cx, cy, pw = best_t2
+                    tex_info = evaluate_placement_texture_cost(
+                        pw, theta2, width, height, texture_field, grain_locked=True, priority=2
+                    )
+                    local_recs.append(
+                        {
+                            "item_instance_id": it["item_instance_id"],
+                            "shapely_outer": ShapelyPolygon(pw),
+                            "shapely_hole": None,
+                            "hole_polygon_world": None,
+                            "bbox": bbox(pw),
+                            "area": float(it["area"]),
+                            "tier": 2,
+                        }
+                    )
+                    local_tex += float(tex_info["total_texture_penalty"])
+                    local_placed.append((it, cx, cy, theta2, pw, sc, tex_info))
+            return local_recs, local_placed, local_tex
+
+        placed_records, t2_placed_temp, total_tex_penalty = _run_tier2_pass(compact_mode=False)
+        if len(t2_placed_temp) < len(tier2_items):
+            alt_recs, alt_placed, alt_tex = _run_tier2_pass(compact_mode=True)
+            if len(alt_placed) > len(t2_placed_temp):
+                placed_records, t2_placed_temp, total_tex_penalty = alt_recs, alt_placed, alt_tex
 
         # Sort placed stair treads sequentially (#S1..#S8) along strips (row band first, then vein flow direction)
         t2_placed_temp.sort(

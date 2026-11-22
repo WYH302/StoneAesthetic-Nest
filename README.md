@@ -81,7 +81,7 @@ Running `quickstart_demo.py` processes `examples/sample_slabs/Onyx011_Jade_Onyx.
 
 ## Reference Evaluation Summary | 实验参考指标
 
-Evaluated across `YunfuPoly-24` (`24` uncut `3000×1800 mm` CC0 marble, onyx, and travertine slabs spanning `6` polymorphic architectural order archetypes `A1`–`A6`, 100% `RAC-Checker` verified). External C++ and Rust baselines execute unmodified official compiled binaries (`EURO/ESICUP-14` native strip density: `79.4%` for Official Rust `Sparrow v0.3`, `70.4%` for `Jagua-rs LBF`; `Baldacci-6` defective Bin-0 utilization: `70.4%` for Official C++ `PackingSolver`, `65.9%` for our geometric core):
+Evaluated across `YunfuPoly-24` (`24` uncut `3000×1800 mm` CC0 marble, onyx, and travertine slabs spanning `6` polymorphic architectural order archetypes `A1`–`A6`, 100% `RAC-Checker` verified, `1.92 s/slab` CPU). External C++ and Rust baselines execute unmodified official compiled binaries (`EURO/ESICUP-14` native strip density: `70.4%` for `Jagua-rs LBF`, `79.4%` at `2 s` and `84.0%` at `60 s` for Official Rust `Sparrow v0.3`; `Baldacci-6` defective Bin-0 utilization: `70.4%` for Official C++ `PackingSolver`, `65.9%` for our geometric core; Official `DeepCrack-237` crack IoU on CPU / RTX 3090: `54.8%` zero-GPU `Black-Hat` vs. `49.7%` zero-shot `SAM 2.1 Hiera-Tiny` vs. `70.1%` optional `0.40M`-param `CrackUNet-Lite`):
 
 | Method / 方法 | Core Seam Continuity | Golden-Zone Hit | Strip Vein Error | Offcut Pieces | Net Utilization | Net Profit (CNY) |
 | :--- | :---: | :---: | :---: | :---: | :---: | :---: |
@@ -91,7 +91,7 @@ Evaluated across `YunfuPoly-24` (`24` uncut `3000×1800 mm` CC0 marble, onyx, an
 | `Sparrow v0.3` (Official Rust) | 33.0% | 18.9% | 55.1° | 35.3 | **57.0%** | 1,272 |
 | `RL-PPO-Adapted` | 52.6% | 21.2% | 25.1° | 13.5 | 48.6% | 1,273 |
 | `GFPack++-Adapted` | 52.6% | 21.2% | 22.0° | 13.5 | 48.5% | 1,354 |
-| **StoneAesthetic-Nest (Prototype)** | **86.8%** | **95.4%** | **0.0°** | **35.3** | 56.9% | **3,736** |
+| **StoneAesthetic-Nest (Prototype)** | **86.8%** | **95.4%** | **0.0°** | **35.3** | **57.0%** | **3,749** |
 
 ---
 

@@ -1,0 +1,123 @@
+{
+  "time_limit_sec": 60,
+  "seed": 42,
+  "workers_per_instance": 4,
+  "num_instances": 14,
+  "total_wall_sec": 465.27,
+  "sparrow_60s_mean_density": 0.8395,
+  "sparrow_60s_std_density": 0.0725,
+  "per_instance": [
+    {
+      "instance": "albano",
+      "strip_width": 9893.063,
+      "density": 0.879957,
+      "placed_count": 24,
+      "run_time_sec": 60.0,
+      "wall_sec": 64.46
+    },
+    {
+      "instance": "blaz1",
+      "strip_width": 26.465,
+      "density": 0.816102,
+      "placed_count": 28,
+      "run_time_sec": 55.0,
+      "wall_sec": 63.7
+    },
+    {
+      "instance": "dagli",
+      "strip_width": 59.576,
+      "density": 0.848916,
+      "placed_count": 30,
+      "run_time_sec": 57.0,
+      "wall_sec": 62.41
+    },
+    {
+      "instance": "fu",
+      "strip_width": 31.285,
+      "density": 0.910878,
+      "placed_count": 12,
+      "run_time_sec": 59.0,
+      "wall_sec": 61.76
+    },
+    {
+      "instance": "gardeyn0",
+      "strip_width": 49499.008,
+      "density": 0.88368,
+      "placed_count": 50,
+      "run_time_sec": 59.0,
+      "wall_sec": 70.07
+    },
+    {
+      "instance": "jakobs1",
+      "strip_width": 11.002,
+      "density": 0.890663,
+      "placed_count": 25,
+      "run_time_sec": 50.0,
+      "wall_sec": 67.41
+    },
+    {
+      "instance": "jakobs2",
+      "strip_width": 23.264,
+      "density": 0.82953,
+      "placed_count": 25,
+      "run_time_sec": 54.0,
+      "wall_sec": 66.08
+    },
+    {
+      "instance": "mao",
+      "strip_width": 1745.677,
+      "density": 0.844353,
+      "placed_count": 20,
+      "run_time_sec": 56.0,
+      "wall_sec": 65.04
+    },
+    {
+      "instance": "marques",
+      "strip_width": 77.344,
+      "density": 0.894359,
+      "placed_count": 24,
+      "run_time_sec": 57.0,
+      "wall_sec": 66.06
+    },
+    {
+      "instance": "shapes0",
+      "strip_width": 60.01,
+      "density": 0.664822,
+      "placed_count": 43,
+      "run_time_sec": 58.0,
+      "wall_sec": 66.77
+    },
+    {
+      "instance": "shapes1",
+      "strip_width": 54.002,
+      "density": 0.738787,
+      "placed_count": 43,
+      "run_time_sec": 60.0,
+      "wall_sec": 67.35
+    },
+    {
+      "instance": "shirts",
+      "strip_width": 61.051,
+      "density": 0.884502,
+      "placed_count": 99,
+      "run_time_sec": 59.0,
+      "wall_sec": 68.13
+    },
+    {
+      "instance": "swim",
+      "strip_width": 5817.444,
+      "density": 0.760417,
+      "placed_count": 48,
+      "run_time_sec": 55.0,
+      "wall_sec": 68.9
+    },
+    {
+      "instance": "trousers",
+      "strip_width": 240.574,
+      "density": 0.90535,
+      "placed_count": 64,
+      "run_time_sec": 57.0,
+      "wall_sec": 69.14
+    }
+  ]
+}
