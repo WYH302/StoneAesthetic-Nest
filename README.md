@@ -123,6 +123,20 @@ StoneAesthetic-Nest/
 
 ---
 
+## Design Insights & Engineering Pitfalls | 设计思考与踩坑记录
+
+While iterating on real marble, onyx, and travertine slabs, three practical failures reshaped our design:
+1. **Dark Onyx False Crack Masking**: Uniform multi-scale morphological closing (`r = 9, 23, 45`) worked cleanly on light Carrara marble, yet misclassified broad emerald and amber mineral veins on dark onyx as structural cracks. Switching dynamically to narrow hairline kernels (`r = 9`) whenever median slab luminance drops below `135` resolved vein preservation without needing GPU weights.
+2. **Oblique Lattice Gaps (`> 130 mm`)**: Stepping tilted `R×C` wall tiles along axis-aligned bounding boxes at `18°` mineral flow opened triangular dead zones exceeding `130 mm` between adjacent slabs. Parameterizing the cutting grid directly on the rotated orthonormal basis `(u, v)` with exact blade-kerf pitches `(w + d_kerf, h + d_kerf)` restored continuous mortar joints.
+3. **Why Physics Descriptors Outperform End-to-End RGB CNNs on Unseen Stone**: Under strict variety-grouped 5-fold cross-validation (`864` candidate pairs across `12` stone varieties), RGB `MobileNetV3-Small` (`49.1%`) and `ResNet-18` (`59.8%`) overfit to training stone colors. Extracting 12 variety-invariant physical descriptors (Golden-Zone overlap, structure-tensor coherence, seam gradient correlation, blemish purity, and clearance) reached **`98.8%` out-of-fold accuracy** with only `3,085` parameters on CPU.
+
+在真实石材大板迭代过程中，我们踩过三个印象深刻的坑，也直接塑造了最终方案：
+1. **深色山水玉暗裂误判**：多尺度黑帽算子在浅色大理石上表现很好，但在深色翡翠玉/琥珀玉上会把宽阔的天然主纹误判为裂纹。引入中位亮度阈值（`135`）自适应切换细核（`r = 9`）后，零 GPU 即可稳定区分发丝暗裂与高价值主纹。
+2. **斜纹拼花的边界三角死区**：若直接按水平包围盒步进旋转后的多联墙板，在 `18°` 主纹角下会在相邻板之间产生超 `130 mm` 的无效三角缝。改为直接在旋转正交基 `(u, v)` 上按精确刀缝步距排布后，才真正实现跨缝连纹。
+3. **跨品种泛化为何选 12 维物理特征而非端到端 RGB CNN**：在严格按石材品种划分的 5 折交叉验证下，RTX 3090 上训练的 RGB `MobileNetV3-Small`（`49.1%`）与 `ResNet-18`（`59.8%`）极易过拟合训练色系；而仅 `3,085` 参数的 12 维物理-美学特征 MLP 在未知新品种上取得了 **`98.8%`** 的排序准确率，且在普通车间 CPU 上即可毫秒级评分。
+
+---
+
 ## Citation | 引用格式
 
 If you find this open-source prototype or polymorphic stone benchmark helpful for your research or engineering exploration, please consider citing:
@@ -131,7 +145,7 @@ If you find this open-source prototype or polymorphic stone benchmark helpful fo
 @article{wu2026stoneaesthetic,
   author  = {Wu, Yonghao},
   title   = {StoneAesthetic-Nest: Beyond Area Maximization---Anisotropic Vein-Continuous and Multi-Tier Nesting for Natural Stone CAD/CAM},
-  journal = {Preprint submitted to Computer-Aided Design},
+  journal = {Preprint submitted to The International Journal of Advanced Manufacturing Technology},
   year    = {2026}
 }
 ```
