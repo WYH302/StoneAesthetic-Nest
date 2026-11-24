@@ -29,9 +29,9 @@ MASTER_DIR = Path(__file__).resolve().parents[1]
 if str(MASTER_DIR) not in sys.path:
     sys.path.insert(0, str(MASTER_DIR))
 
-from experiments.run_yunfu_aesthetic_benchmark_and_figures import RESULTS_DIR
 from src.llm_compiler.order_compiler import compile_chinese_order, compile_naive_baseline
 
+RESULTS_DIR = MASTER_DIR / "experiments" / "results"
 OUT_JSON = RESULTS_DIR / "exp_g_colloquial_order_stress_test.json"
 
 
@@ -583,6 +583,18 @@ def main() -> None:
     }
     OUT_JSON.write_text(json.dumps(payload, ensure_ascii=False, indent=2), encoding="utf-8")
     print(f"[OK] Saved 30-case colloquial compiler audit -> {OUT_JSON}")
+
+
+def test_yunfu_colloquial_order_30_cases() -> None:
+    """Automated pytest regression suite verifying 30/30 adversarial Yunfu workshop orders."""
+    for case in _build_30_adversarial_cases():
+        parsed = compile_chinese_order(
+            case["text"],
+            dynamic_remnant_cap=bool(case.get("dynamic_remnant_cap", False)),
+        )
+        ok, errs = _check_case(parsed, case["expect"])
+        assert ok, f"Order {case['id']} ({case['category']}) failed: {errs}"
+        assert parsed.get("schema_valid", False), f"Order {case['id']} failed schema validation: {parsed.get('schema_errors')}"
 
 
 if __name__ == "__main__":
