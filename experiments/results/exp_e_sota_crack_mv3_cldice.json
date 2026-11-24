@@ -69,5 +69,73 @@
     "fg_iou_ods_pct": 73.47,
     "two_class_miou_at_05_pct": 85.63,
     "two_class_miou_ods_pct": 86.14
+  },
+  "deployment_fp16_audit": {
+    "device": "NVIDIA GeForce RTX 3090",
+    "input_resolution": "384x512",
+    "fp32_eager_single": {
+      "mode": "FP32_Eager_SinglePass",
+      "pure_gpu_mean_ms": 33.68,
+      "pure_gpu_median_ms": 14.86,
+      "pure_gpu_fps": 29.7,
+      "vram_peak_mib": 676.4,
+      "fg_iou_05_pct": 71.75,
+      "strict_f1_05_pct": 82.3,
+      "global_f1_05_pct": 85.08,
+      "safety_recall_05_pct": 85.86,
+      "miou_2class_05_pct": 85.25,
+      "ods_global_f1_pct": 85.93,
+      "ods_best_threshold": 0.125,
+      "ois_f1_pct": 84.73,
+      "miou_2class_ods_pct": 85.5
+    },
+    "fp16_eager_single": {
+      "mode": "FP16_Eager_SinglePass",
+      "pure_gpu_mean_ms": 25.86,
+      "pure_gpu_median_ms": 18.56,
+      "pure_gpu_fps": 38.7,
+      "vram_peak_mib": 308.0,
+      "fg_iou_05_pct": 71.75,
+      "strict_f1_05_pct": 82.3,
+      "global_f1_05_pct": 85.07,
+      "safety_recall_05_pct": 85.84,
+      "miou_2class_05_pct": 85.24,
+      "ods_global_f1_pct": 85.93,
+      "ods_best_threshold": 0.125,
+      "ois_f1_pct": 84.72,
+      "miou_2class_ods_pct": 85.49
+    },
+    "fp16_cudagraph_single": {
+      "mode": "FP16_CUDAGraph_SinglePass",
+      "pure_gpu_mean_ms": 5.27,
+      "pure_gpu_median_ms": 5.02,
+      "pure_gpu_fps": 189.8,
+      "vram_peak_mib": 306.5,
+      "fg_iou_05_pct": 71.75,
+      "strict_f1_05_pct": 82.3,
+      "global_f1_05_pct": 85.07,
+      "safety_recall_05_pct": 85.84,
+      "miou_2class_05_pct": 85.24,
+      "ods_global_f1_pct": 85.93,
+      "ods_best_threshold": 0.125,
+      "ois_f1_pct": 84.72,
+      "miou_2class_ods_pct": 85.49
+    },
+    "fp16_cudagraph_batched_4tta": {
+      "mode": "FP16_CUDAGraph_Batched4xTTA",
+      "pure_gpu_mean_ms": 45.73,
+      "pure_gpu_median_ms": 26.46,
+      "pure_gpu_fps": 21.9,
+      "vram_peak_mib": 1207.9,
+      "fg_iou_05_pct": 72.56,
+      "strict_f1_05_pct": 82.9,
+      "global_f1_05_pct": 85.37,
+      "safety_recall_05_pct": 86.19,
+      "miou_2class_05_pct": 85.66,
+      "ods_global_f1_pct": 86.56,
+      "ods_best_threshold": 0.175,
+      "ois_f1_pct": 86.42,
+      "miou_2class_ods_pct": 86.11
+    }
   }
 }

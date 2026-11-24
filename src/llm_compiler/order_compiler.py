@@ -60,11 +60,33 @@ def _has_grain_lock(clause: str, global_default: bool = False) -> bool:
 def _preprocess_colloquial_chinese(text: str) -> str:
     """Normalize colloquial Yunfu workshop shorthand into canonical metric expressions before AST parsing."""
     s = text.strip()
-    # Colloquial dimension idioms: 半米见方 -> 500x500mm 正方形; 一米二 -> 1200mm; 一米五 -> 1500mm
+    # Colloquial dimension idioms: 半米见方 -> 50x50厘米正方形; 一米二 -> 1200mm; 一米五 -> 1500mm
     s = re.sub(r"半米见方", "50x50厘米正方形", s)
     s = re.sub(r"一米([一二三四五六七八九])", lambda m: f"{1000 + CN_NUMS[m.group(1)] * 100}mm", s)
     s = re.sub(r"两米([一二三四五六七八九])", lambda m: f"{2000 + CN_NUMS[m.group(1)] * 100}mm", s)
     s = re.sub(r"(\d+(?:\.\d+)?)\s*米见方", lambda m: f"{round(float(m.group(1)) * 1000.0):.0f}x{round(float(m.group(1)) * 1000.0):.0f}mm正方形", s)
+    s = re.sub(r"(?<![一二三四五六七八九\d])一米(?![一二三四五六七八九\d见])", "1000mm", s)
+    s = re.sub(r"(?<![一二三四五六七八九\d])两米(?![一二三四五六七八九\d见])", "2000mm", s)
+    s = re.sub(r"(?<![一二三四五六七八九\d])半米(?!见方)", "500mm", s)
+    # Spoken Chinese two-digit dimensions like 六十公分 / 八十厘米 -> 60公分 / 80厘米
+    s = re.sub(
+        r"([一二两三四五六七八九]?十[一二三四五六七八九]?)\s*(公分|厘米|毫米)",
+        lambda m: f"{parse_cn_int(m.group(1))}{m.group(2)}",
+        s,
+    )
+    # Normalize "长120宽60厘米" or "1200mm长600mm宽" -> "120x60厘米" / "1200mmx600mm"
+    s = re.sub(
+        r"长\s*(\d+(?:\.\d+)?)\s*(mm|毫米|cm|厘米|公分|m|米)?\s*宽\s*(\d+(?:\.\d+)?)\s*(mm|毫米|cm|厘米|公分|m|米)?",
+        lambda m: f"{m.group(1)}{m.group(2) or ''}x{m.group(3)}{m.group(4) or ''}",
+        s,
+        flags=re.IGNORECASE,
+    )
+    s = re.sub(
+        r"(\d+(?:\.\d+)?)\s*(mm|毫米|cm|厘米|公分|m|米)?\s*长\s*(\d+(?:\.\d+)?)\s*(mm|毫米|cm|厘米|公分|m|米)?\s*宽",
+        lambda m: f"{m.group(1)}{m.group(2) or ''}x{m.group(3)}{m.group(4) or ''}",
+        s,
+        flags=re.IGNORECASE,
+    )
     s = re.sub(r"常规水刀(?:留缝)?", "水刀，锯缝留3mm", s)
     return s
 
@@ -154,12 +176,20 @@ def compile_chinese_order(text: str, *, dynamic_remnant_cap: bool = False) -> di
         kerf_mm = float(m_kerf.group(1)) * _unit_scale_mm(m_kerf.group(2))
 
     margin_mm = 5.0
-    m_margin = re.search(r"(?:边距|安全边距|留边)\s*(\d+(?:\.\d+)?)\s*(cm|厘米|mm|毫米)?", norm, re.IGNORECASE)
+    m_margin = re.search(r"(?:边距|安全边距|留边)\s*(?:留|为|设|改)?\s*(\d+(?:\.\d+)?)\s*(cm|厘米|公分|mm|毫米)?", norm, re.IGNORECASE)
     if m_margin:
         margin_mm = float(m_margin.group(1)) * _unit_scale_mm(m_margin.group(2))
 
-    has_waterjet = "水刀" in norm or "三角形" in norm or "马赛克" in norm
-    cut_mode = "guillotine" if (not has_waterjet and any(k in norm for k in ("桥切", "一刀切", "直切"))) else "waterjet"
+    negate_waterjet = any(k in norm for k in ("不用水刀", "不要水刀", "不走水刀", "只用桥切", "纯桥切"))
+    has_waterjet = (not negate_waterjet) and (
+        "水刀" in norm
+        or any(
+            (k in c and not any(neg in c for neg in ("不要", "别切", "不用", "不需要", "不切", "取消")))
+            for c in norm.split(",")
+            for k in ("三角形", "马赛克", "六边形", "六角砖")
+        )
+    )
+    cut_mode = "guillotine" if (negate_waterjet or (not has_waterjet and any(k in norm for k in ("桥切", "一刀切", "直切")))) else "waterjet"
     avoid_cracks = not any(k in norm for k in ("忽略裂纹", "不避裂纹"))
     global_grain = any(k in norm for k in ("全部顺纹", "统一顺纹", "整体顺纹", "都要顺纹"))
 
@@ -169,6 +199,11 @@ def compile_chinese_order(text: str, *, dynamic_remnant_cap: bool = False) -> di
     pending_tier3_remnant = False
 
     for idx, clause in enumerate(clauses):
+        # Skip explicit item-exclusion / negation clauses (e.g., "不要马赛克", "别切三角形", "不需要余料")
+        if any(neg in clause for neg in ("不要", "别切", "不用", "不需要", "不切", "取消")):
+            if any(k in clause for k in ("马赛克", "三角形", "六边形", "六角砖", "余料", "边角料", "水刀")):
+                pending_tier3_remnant = False
+                continue
         # Modifier clauses attaching to the previous item
         if items and not re.search(r"\d", clause) and not any(s in clause for s in ("三角形", "马赛克", "正方形", "长方形", "矩形", "圆", "台面")):
             if any(k in clause for k in ("黄金主纹", "黄金带", "主纹带", "连纹对花", "对花", "主拼花")):
@@ -201,26 +236,30 @@ def compile_chinese_order(text: str, *, dynamic_remnant_cap: bool = False) -> di
 
         grain_flag = _has_grain_lock(clause, global_default=global_grain)
 
-        # 1. Hollow countertop (带水槽/挖孔/中岛台面) - supports both mm and cm/厘米
+        # 1. Hollow countertop (带水槽/挖孔/中岛台面) - supports mm, cm/厘米/公分, and m/米
         m_hollow = re.search(
             qty_pat
-            + r"\s*(?P<w>\d{2,4}(?:\.\d+)?)\s*(?P<uw>cm|厘米|公分|mm|毫米)?\s*x\s*(?P<h>\d{2,4}(?:\.\d+)?)\s*(?P<uh>cm|厘米|公分|mm|毫米)?\s*(?:的)?(?:带水槽|挖孔|内挖孔|水槽|中岛挖孔)(?:中岛)?(?:台面|板)?(?:(?:\(|（|\s)*内孔\s*(?P<hw>\d{2,4}(?:\.\d+)?)\s*x\s*(?P<hh>\d{2,4}(?:\.\d+)?)\s*(?P<uhole>cm|厘米|公分|mm|毫米)?(?:\)|）)?)?",
+            + r"\s*(?P<w>\d{1,4}(?:\.\d+)?)\s*(?P<uw>mm|毫米|cm|厘米|公分|m|米)?\s*x\s*(?P<h>\d{1,4}(?:\.\d+)?)\s*(?P<uh>mm|毫米|cm|厘米|公分|m|米)?\s*(?:的)?(?:带水槽|挖孔|内挖孔|水槽|中岛挖孔)(?:中岛)?(?:台面|板)?(?:(?:\(|（|\s)*内孔\s*(?P<hw>\d{1,4}(?:\.\d+)?)\s*(?P<uhw>mm|毫米|cm|厘米|公分|m|米)?\s*x\s*(?P<hh>\d{1,4}(?:\.\d+)?)\s*(?P<uhole>mm|毫米|cm|厘米|公分|m|米)?(?:\)|）)?)?",
             clause,
             re.IGNORECASE,
         )
         if m_hollow:
-            sc_main = _unit_scale_mm(m_hollow.group("uh") or m_hollow.group("uw"))
+            uw_h = m_hollow.group("uw")
+            uh_h = m_hollow.group("uh")
+            sc_w = _unit_scale_mm(uw_h or uh_h)
+            sc_h = _unit_scale_mm(uh_h or uw_h)
             raw_w, raw_h = float(m_hollow.group("w")), float(m_hollow.group("h"))
-            if sc_main == 1.0 and max(raw_w, raw_h) <= 260.0 and any(u in clause for u in ("厘米", "公分", "cm")):
-                sc_main = 10.0
-            w = round(raw_w * sc_main, 1)
-            h = round(raw_h * sc_main, 1)
+            if uw_h is None and uh_h is None and max(raw_w, raw_h) <= 260.0 and any(u in clause for u in ("厘米", "公分", "cm")):
+                sc_w = sc_h = 10.0
+            w = round(raw_w * sc_w, 1)
+            h = round(raw_h * sc_h, 1)
             if m_hollow.group("hw") and m_hollow.group("hh"):
-                sc_hole = _unit_scale_mm(m_hollow.group("uhole"))
-                if sc_hole == 1.0 and float(m_hollow.group("hw")) <= 150.0 and sc_main == 10.0:
-                    sc_hole = 10.0
-                hw = round(float(m_hollow.group("hw")) * sc_hole, 1)
-                hh = round(float(m_hollow.group("hh")) * sc_hole, 1)
+                sc_hw = _unit_scale_mm(m_hollow.group("uhw") or m_hollow.group("uhole"))
+                sc_hh = _unit_scale_mm(m_hollow.group("uhole") or m_hollow.group("uhw"))
+                if m_hollow.group("uhw") is None and m_hollow.group("uhole") is None and float(m_hollow.group("hw")) <= 150.0 and sc_w == 10.0:
+                    sc_hw = sc_hh = 10.0
+                hw = round(float(m_hollow.group("hw")) * sc_hw, 1)
+                hh = round(float(m_hollow.group("hh")) * sc_hh, 1)
             else:
                 hw = round(w * 0.42, 1)
                 hh = round(h * 0.54, 1)
@@ -306,9 +345,9 @@ def compile_chinese_order(text: str, *, dynamic_remnant_cap: bool = False) -> di
             )
             continue
 
-        # 4. Circle (圆桌/圆几/圆盘/圆) - supports both 直径 and 半径 in mm or cm/厘米
+        # 4. Circle (圆桌/圆几/圆盘/圆) - supports both 直径 and 半径 in mm, cm/厘米, or m/米
         m_circle = re.search(
-            qty_pat + r"\s*(?P<mode>直径|半径|Ø|Φ)?\s*(?P<val>\d{1,4}(?:\.\d+)?)\s*(?P<uc>cm|厘米|公分|mm|毫米)?(?:的)?(?:圆桌|圆几|圆形茶几|圆茶几|圆台|圆盘|小圆垫|圆形|圆)",
+            qty_pat + r"\s*(?P<mode>直径|半径|Ø|Φ)?\s*(?P<val>\d{1,4}(?:\.\d+)?)\s*(?P<uc>mm|毫米|cm|厘米|公分|m|米)?(?:的)?(?:圆桌|圆几|圆形茶几|圆茶几|圆台|圆盘|小圆垫|圆形|圆)",
             clause,
             re.IGNORECASE,
         )
@@ -358,8 +397,14 @@ def compile_chinese_order(text: str, *, dynamic_remnant_cap: bool = False) -> di
             continue
 
         # 6. Square (正方形/方几/主拼花/余料小方砖/茶盘垫) - supports cm/厘米/mm, Tier-1 Vein-Match & Tier-3 Remnant Fill
+        sq_qty_pat = r"(?P<q>\d+|[一二两俩三四五六七八九十]{1,3})\s*(?:个|块|件|张|套|片|条)"
+        sq_nouns = r"(?:正方形|方几|方板|小方砖|防滑小地砖|方砖|小方垫|茶盘垫|杯垫|主拼花|田字格地拼|地拼)"
         m_sq = re.search(
-            r"(?:" + qty_pat + r"\s*)?(?P<s>\d{1,4}(?:\.\d+)?)(?:\s*x\s*(?P=s))?\s*(?P<u1>cm|厘米|公分|m|米|mm|毫米)?(?:的)?(?:正方形|方几|方板|小方砖|防滑小地砖|方砖|小方垫|茶盘垫|杯垫|主拼花|田字格地拼|地拼)",
+            r"(?:" + sq_qty_pat + r"\s*)?(?P<s>\d{1,4}(?:\.\d+)?)(?:\s*x\s*(?P=s))?\s*(?P<u1>mm|毫米|cm|厘米|公分|m|米)?(?:的)?(?:背景墙|田字格|大堂)?" + sq_nouns,
+            clause,
+            re.IGNORECASE,
+        ) or re.search(
+            r"(?:" + sq_qty_pat + r"\s*)?" + sq_nouns + r"\s*(?P<s>\d{1,4}(?:\.\d+)?)\s*(?P<u1>mm|毫米|cm|厘米|公分|m|米)",
             clause,
             re.IGNORECASE,
         )
@@ -406,7 +451,7 @@ def compile_chinese_order(text: str, *, dynamic_remnant_cap: bool = False) -> di
         # 7. Rectangle / Four-Panel Screen / Twin Vanity / Stair Tread / Window Sill / Threshold
         m_rect = re.search(
             qty_pat
-            + r"\s*(?P<w>\d{1,4}(?:\.\d+)?)\s*(?P<uw>cm|厘米|公分|m|米|mm|毫米)?\s*x\s*(?P<h>\d{1,4}(?:\.\d+)?)\s*(?P<uh>cm|厘米|公分|m|米|mm|毫米)?(?:的)?(?:四联屏|双联洗手台|双盆洗手台|洗手台面|主台面|台面|长方形|矩形|楼梯踏步|踏步板|踏步|茶几板|门槛石|过门石|飘窗板|飘窗台|窗台板|护墙板条|护墙板|踢脚线|侧板|挡水条|背景墙|屏风|板)?",
+            + r"\s*(?P<w>\d{1,4}(?:\.\d+)?)\s*(?P<uw>mm|毫米|cm|厘米|公分|m|米)?\s*x\s*(?P<h>\d{1,4}(?:\.\d+)?)\s*(?P<uh>mm|毫米|cm|厘米|公分|m|米)?(?:的)?(?:四联屏|双联洗手台|双盆洗手台|洗手台面|主台面|台面|长方形|矩形|楼梯踏步|踏步板|踏步|茶几板|门槛石|过门石|飘窗板|飘窗台|窗台板|护墙板条|护墙板|踢脚线|侧板|挡水条|背景墙|屏风|板)?",
             clause,
             re.IGNORECASE,
         )
@@ -430,32 +475,48 @@ def compile_chinese_order(text: str, *, dynamic_remnant_cap: bool = False) -> di
             )
             if is_tandem or (grain_flag and not is_core_rect):
                 w, h = max(w, h), min(w, h)
-            area = w * h
-            items.append(
-                {
-                    "id": f"core_panel_{len(items) + 1}" if is_core_rect else (f"stair_tread_{len(items) + 1}" if is_tandem else f"rectangle_{len(items) + 1}"),
-                    "shape": "rectangle",
-                    "width": w,
-                    "height": h,
-                    "quantity": qty,
-                    "grain_locked": True if (is_core_rect or is_tandem) else grain_flag,
-                    "allow_rotation": False if (is_core_rect or is_tandem or grain_flag) else True,
-                    "priority": 3 if is_core_rect else (2 if (is_tandem or area >= 150000.0) else 1),
-                    "tier": 1 if is_core_rect else (2 if (is_tandem or area >= 150000.0) else 3),
-                    "role": "core_vein_match" if is_core_rect else ("stair_tread_tandem" if is_tandem else "standard"),
-                    "vein_matching": is_core_rect,
-                    "golden_zone_required": is_core_rect,
-                    "grid_layout": _infer_vein_grid(qty, clause) if is_core_rect else None,
-                    "tandem_sequence": is_tandem,
-                }
+            is_equal_square = abs(w - h) <= 1.0 and any(
+                k in clause for k in ("正方形", "主拼花", "田字格", "地拼", "方板", "方砖", "方几")
             )
+            area = w * h
+            item_dict: dict[str, Any] = {
+                "id": (
+                    f"core_square_{len(items) + 1}"
+                    if (is_equal_square and is_core_rect)
+                    else (
+                        f"core_panel_{len(items) + 1}"
+                        if is_core_rect
+                        else (f"stair_tread_{len(items) + 1}" if is_tandem else f"rectangle_{len(items) + 1}")
+                    )
+                ),
+                "shape": "square" if is_equal_square else "rectangle",
+                "width": w,
+                "height": h,
+                "quantity": qty,
+                "grain_locked": True if (is_core_rect or is_tandem) else grain_flag,
+                "allow_rotation": False if (is_core_rect or is_tandem or grain_flag) else True,
+                "priority": 3 if is_core_rect else (2 if (is_tandem or area >= 150000.0) else 1),
+                "tier": 1 if is_core_rect else (2 if (is_tandem or area >= 150000.0) else 3),
+                "role": "core_vein_match" if is_core_rect else ("stair_tread_tandem" if is_tandem else "standard"),
+                "vein_matching": is_core_rect,
+                "golden_zone_required": is_core_rect,
+                "grid_layout": _infer_vein_grid(qty, clause) if is_core_rect else None,
+                "tandem_sequence": is_tandem,
+            }
+            if is_equal_square:
+                item_dict["size"] = w
+            items.append(item_dict)
             continue
 
         # 8. Regular Hexagon Mosaic (正六边形/六边形/六角砖)
         if any(k in clause for k in ("正六边形", "六边形", "六角砖", "六角拼花")):
             m_q = re.search(r"(?P<q>\d+|[一二两俩三四五六七八九十]{1,3})\s*(?:个|块|件|片)", clause)
             m_rad = re.search(
-                r"(?:边长|半径|外接半径|尺寸|规格)?\s*(?P<r>\d{1,4}(?:\.\d+)?)\s*(?P<u>cm|厘米|公分|mm|毫米)?",
+                r"(?:边长|半径|外接半径|尺寸|规格)\s*(?P<r>\d{1,4}(?:\.\d+)?)\s*(?P<u>cm|厘米|公分|mm|毫米)?",
+                clause,
+                re.IGNORECASE,
+            ) or re.search(
+                r"(?P<r>\d{1,4}(?:\.\d+)?)\s*(?P<u>cm|厘米|公分|mm|毫米)(?!\s*(?:个|块|件|片))",
                 clause,
                 re.IGNORECASE,
             )
@@ -489,11 +550,15 @@ def compile_chinese_order(text: str, *, dynamic_remnant_cap: bool = False) -> di
             pending_tier3_remnant = False
             continue
 
-        # 8. Equilateral Triangle / Remnant Mosaic Tile (等边三角形/马赛克拼花砖 - supports explicit qty or open remnant fill)
+        # 9. Equilateral Triangle / Remnant Mosaic Tile (等边三角形/马赛克拼花砖 - supports explicit qty or open remnant fill)
         if any(k in clause for k in ("等边三角形", "三角形", "马赛克")):
             m_q = re.search(r"(?P<q>\d+|[一二两俩三四五六七八九十]{1,3})\s*(?:个|块|件|片)", clause)
             m_side = re.search(
-                r"(?:边长|尺寸|规格)?\s*(?P<s>\d{1,4}(?:\.\d+)?)\s*(?P<u>cm|厘米|公分|mm|毫米)?",
+                r"(?:边长|尺寸|规格)\s*(?P<s>\d{1,4}(?:\.\d+)?)\s*(?P<u>cm|厘米|公分|mm|毫米)?",
+                clause,
+                re.IGNORECASE,
+            ) or re.search(
+                r"(?P<s>\d{1,4}(?:\.\d+)?)\s*(?P<u>cm|厘米|公分|mm|毫米)(?!\s*(?:个|块|件|片))",
                 clause,
                 re.IGNORECASE,
             )

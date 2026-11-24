@@ -103,9 +103,10 @@ Evaluated across `YunfuPoly-24` (`24` uncut `3000×1800 mm` CC0 marble, onyx, an
 
 **Official `DeepCrack` (`300` train / `237` unseen test) Crack Segmentation (`RTX 3090` & `CPU`)**:
 - `Black-Hat Adaptive` (Ours, zero-GPU CPU): `0.00M` params, `17.8 ms` (`56.3 FPS`), `54.8%` FG-IoU, `67.5%` Strict F1.
-- `CrackSeg-MV3-clDice` (Ours, RTX 3090): `3.17M` params, `18.4 ms` (`54.4 FPS`, `378 MiB` VRAM), **`72.5%` FG-IoU**, **`82.8%` Strict F1**, **`86.5%` ODS Global F1**, **`86.3%` OIS F1**, **`86.1%` 2-Class mIoU** — matching or exceeding heavier published CNN-Transformer hybrids (`DTrCNet` `84.7%` ODS, `SimCrack` `85.7%` ODS, `EfficientCrackNet` `85.9%` F1) at `1.16–1.88×` faster inference.
+- `CrackSeg-MV3-clDice` (Ours, RTX 3090): `3.17M` params, **`5.27 ms` (`189.8 FPS`, `306.5 MiB` VRAM)** in FP16 + `torch.cuda.CUDAGraph` single-pass (`71.8%` FG-IoU, `85.9%` ODS F1, `0.00%` FP16 accuracy loss), or `18.4 ms` (`54.4 FPS`, `378 MiB` VRAM) FP32 eager (`72.5%` FG-IoU, `82.8%` Strict F1, **`86.5%` ODS Global F1**, **`86.3%` OIS F1**, **`86.1%` 2-Class mIoU** with 4-view TTA) — matching or exceeding heavier published CNN-Transformer hybrids (`DTrCNet` `84.7%` ODS, `SimCrack` `85.7%` ODS, `EfficientCrackNet` `85.9%` F1) at `4.0–6.5×` faster FP16 CUDA-Graph inference.
 
-**Industrial CAM & Robustness Highlights**:
+**Industrial CAM, Language Compiler & Robustness Highlights**:
+- **30-Case Adversarial Colloquial Order Stress Test (`YunfuColloquialOrder-30`)**: **`30/30` (`100.0%`)** exact AST match and **`30/30` (`100.0%`)** formal schema validation at `1.05 ms/order` CPU (vs. `0/30` for unconstrained regex) across spoken Chinese dimensions, mixed `m/cm/mm` units, negation clauses, polymorphic assemblies, bookmatching, and edge quantifiers.
 - **4-Corner GTSP 2-Opt Routing**: Rapid air-travel reduced from `29.76 m → 7.14 m` (**`-73.6%`**), with **`100.0%`** neighbor- and defect-safe waterjet pierce points.
 - **Bridge-Saw Common-Line Merging**: Collinear shared cuts merged from `34.7 → 21.3` segments (**`-38.6%`**, saving `2.63 m/slab`).
 - **Fair 6-Channel Context CNN Audit**: Even when given the exact Golden-Zone, saliency, and alignment channels, `MobileNetV3-S` (`53.7%`) and `ResNet-18` (`46.8%`) overfit to training stone RGB on unseen varieties, while our unfrozen 12-D physics MLP reaches **`100.0 ± 0.0%`** (`1.68M` candidates/s on CPU).
