@@ -5,7 +5,8 @@ from __future__ import annotations
 import math
 from typing import Any
 
-from shapely.geometry import Polygon as ShapelyPolygon
+from shapely.geometry import Polygon as ShapelyPolygon, box as shapely_box
+from shapely import prepare as shapely_prepare, STRtree
 
 Point = tuple[float, float]
 PolygonCoords = list[Point]
@@ -204,8 +205,13 @@ def resolve_allowed_rotations(
         base_angles = [round(vein_base % 360.0, 2), round((vein_base + 180.0) % 360.0, 2), 0.0, 180.0]
         if vein_tol > 0.1:
             extra = []
+            # Support fine micro-angle perturbations (e.g. +/-2 deg, +/-4 deg) for continuous vein refinement
+            step_micro = 2.0 if vein_tol >= 3.0 else vein_tol
+            n_steps = max(1, int(round(vein_tol / step_micro)))
             for b in base_angles[:2]:
-                extra.extend([round((b - vein_tol) % 360.0, 2), round((b + vein_tol) % 360.0, 2)])
+                for k in range(1, n_steps + 1):
+                    delta = min(vein_tol, k * step_micro)
+                    extra.extend([round((b - delta) % 360.0, 2), round((b + delta) % 360.0, 2)])
             base_angles.extend(extra)
         seen: list[float] = []
         for a in base_angles:
@@ -274,6 +280,50 @@ def expand_case_items(case: dict[str, Any]) -> list[dict[str, Any]]:
     return expanded
 
 
+class SpatialCollisionIndex:
+    """Shapely 2.2 STRtree + cached inset-hole collision index accelerating repeated feasibility checks."""
+
+    def __init__(self, obstacle_shps: list[ShapelyPolygon]) -> None:
+        self.obstacle_shps = list(obstacle_shps)
+        for obs in self.obstacle_shps:
+            shapely_prepare(obs)
+        self.obs_bounds = [obs.bounds for obs in self.obstacle_shps]
+        self.obs_tree = STRtree(self.obstacle_shps) if len(self.obstacle_shps) >= 4 else None
+        self.placed_shps: list[ShapelyPolygon] = []
+        self.placed_recs: list[dict[str, Any]] = []
+        self.placed_tree: STRtree | None = None
+        self._dirty = False
+
+    def add_placed(self, rec: dict[str, Any], kerf: float = 3.0) -> None:
+        shp = rec["shapely_outer"]
+        shapely_prepare(shp)
+        if rec.get("shapely_hole") is not None and "_cached_inset_hole" not in rec:
+            ih = rec["shapely_hole"].buffer(-kerf)
+            if not ih.is_empty:
+                shapely_prepare(ih)
+            rec["_cached_inset_hole"] = ih
+            rec["_cached_inset_kerf"] = kerf
+        self.placed_shps.append(shp)
+        self.placed_recs.append(rec)
+        self._dirty = True
+
+    def query_placed_indices(self, min_x: float, min_y: float, max_x: float, max_y: float, pad: float) -> Any:
+        n = len(self.placed_shps)
+        if n < 12:
+            return range(n)
+        if self._dirty or self.placed_tree is None:
+            self.placed_tree = STRtree(self.placed_shps)
+            self._dirty = False
+        qbox = shapely_box(min_x - pad, min_y - pad, max_x + pad, max_y + pad)
+        return self.placed_tree.query(qbox)
+
+    def query_obstacle_indices(self, min_x: float, min_y: float, max_x: float, max_y: float, pad: float) -> Any:
+        if self.obs_tree is None:
+            return range(len(self.obstacle_shps))
+        qbox = shapely_box(min_x - pad, min_y - pad, max_x + pad, max_y + pad)
+        return self.obs_tree.query(qbox)
+
+
 def check_placement_feasible(
     poly: PolygonCoords,
     placed_records: list[dict[str, Any]],
@@ -284,11 +334,12 @@ def check_placement_feasible(
     kerf: float = 3.0,
     obstacle_clearance: float = 0.0,
     cut_mode: str = "waterjet",
+    spatial_index: SpatialCollisionIndex | None = None,
 ) -> tuple[bool, str | None]:
     """Check if `poly` is feasible against board boundaries, defect hazards, and placed parts.
 
-    Supports Minkowski kerf clearance and Part-in-Part nesting inside interior sink holes
-    when `cut_mode == 'waterjet'`.
+    Supports Minkowski kerf clearance, Part-in-Part nesting inside interior sink holes
+    when `cut_mode == 'waterjet'`, and optional Shapely 2.2 STRtree acceleration.
     Returns `(is_feasible, nested_inside_parent_id)`.
     """
     min_x, min_y, max_x, max_y = bbox(poly)
@@ -300,20 +351,38 @@ def check_placement_feasible(
     ):
         return False, None
 
+    # Fast pure-Python AABB shortlist BEFORE constructing ShapelyPolygon when possible
+    pad_obs = obstacle_clearance + EPS
+    if spatial_index is not None:
+        obs_idxs = spatial_index.query_obstacle_indices(min_x, min_y, max_x, max_y, pad_obs)
+        cand_obs = [spatial_index.obstacle_shps[int(i)] for i in obs_idxs]
+    else:
+        cand_obs = []
+        for obs_shp in obstacle_shps:
+            ob = obs_shp.bounds
+            if not (max_x < ob[0] - pad_obs or min_x > ob[2] + pad_obs or max_y < ob[1] - pad_obs or min_y > ob[3] + pad_obs):
+                cand_obs.append(obs_shp)
+
+    pad_part = kerf + EPS
+    if spatial_index is not None:
+        p_idxs = spatial_index.query_placed_indices(min_x, min_y, max_x, max_y, pad_part)
+        cand_recs = [spatial_index.placed_recs[int(i)] for i in p_idxs]
+    else:
+        cand_recs = []
+        for rec in placed_records:
+            ob = rec["bbox"]
+            if not (max_x < ob[0] - pad_part or min_x > ob[2] + pad_part or max_y < ob[1] - pad_part or min_y > ob[3] + pad_part):
+                cand_recs.append(rec)
+
+    if not cand_obs and not cand_recs:
+        return True, None
+
     shp = ShapelyPolygon(poly)
     if not shp.is_valid:
         shp = shp.buffer(0)
 
-    # Check defect hazards (already buffered by safety_margin_mm, or enforce obstacle_clearance)
-    for obs_shp in obstacle_shps:
-        if shp.bounds[2] < obs_shp.bounds[0] - obstacle_clearance - EPS:
-            continue
-        if shp.bounds[0] > obs_shp.bounds[2] + obstacle_clearance + EPS:
-            continue
-        if shp.bounds[3] < obs_shp.bounds[1] - obstacle_clearance - EPS:
-            continue
-        if shp.bounds[1] > obs_shp.bounds[3] + obstacle_clearance + EPS:
-            continue
+    # Check defect hazards
+    for obs_shp in cand_obs:
         if obstacle_clearance > EPS:
             if shp.distance(obs_shp) < obstacle_clearance - 1e-3:
                 return False, None
@@ -322,28 +391,26 @@ def check_placement_feasible(
                 return False, None
 
     nested_parent: str | None = None
-    for rec in placed_records:
+    for rec in cand_recs:
         other_shp: ShapelyPolygon = rec["shapely_outer"]
-        other_bounds = other_shp.bounds
-        # Fast AABB rejection
-        if (
-            max_x < other_bounds[0] - kerf - EPS
-            or min_x > other_bounds[2] + kerf + EPS
-            or max_y < other_bounds[1] - kerf - EPS
-            or min_y > other_bounds[3] + kerf + EPS
-        ):
-            continue
+        other_bounds = rec["bbox"]
 
         # Check Part-in-Part: is `shp` completely inside `rec`'s interior hole with kerf clearance?
         hole_shp: ShapelyPolygon | None = rec.get("shapely_hole")
         if cut_mode == "waterjet" and hole_shp is not None:
-            inset_hole = hole_shp.buffer(-kerf)
+            if rec.get("_cached_inset_kerf") == kerf and "_cached_inset_hole" in rec:
+                inset_hole = rec["_cached_inset_hole"]
+            else:
+                inset_hole = hole_shp.buffer(-kerf)
+                if not inset_hole.is_empty:
+                    shapely_prepare(inset_hole)
+                rec["_cached_inset_hole"] = inset_hole
+                rec["_cached_inset_kerf"] = kerf
             if not inset_hole.is_empty and inset_hole.contains(shp):
                 nested_parent = rec["item_instance_id"]
                 continue
 
         if cut_mode == "guillotine":
-            # In guillotine mode, bounding boxes (expanded by kerf/2) must not overlap
             if not (
                 max_x + kerf <= other_bounds[0] + EPS
                 or min_x - kerf >= other_bounds[2] - EPS

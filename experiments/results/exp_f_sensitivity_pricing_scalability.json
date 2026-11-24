@@ -1,40 +1,96 @@
 {
-  "total_wall_sec": 153.39,
+  "total_wall_sec": 1427.36,
+  "eval_slab_count": 12,
   "safety_buffer_sweep": [
     {
       "d_safe_mm": 2.0,
-      "full_completion": "7/7",
-      "mean_util_pct": 57.75,
-      "mean_seam_pct": 86.86,
-      "mean_profit_cny": 3793.6
+      "mean_defect_area_pct": 0.074,
+      "full_completion": "12/12",
+      "mean_util_pct": 56.98,
+      "mean_seam_pct": 86.87,
+      "mean_profit_cny": 3780.4
     },
     {
       "d_safe_mm": 3.0,
-      "full_completion": "7/7",
-      "mean_util_pct": 57.75,
-      "mean_seam_pct": 86.86,
-      "mean_profit_cny": 3793.6
+      "mean_defect_area_pct": 0.094,
+      "full_completion": "12/12",
+      "mean_util_pct": 56.98,
+      "mean_seam_pct": 86.87,
+      "mean_profit_cny": 3780.4
     },
     {
       "d_safe_mm": 5.0,
-      "full_completion": "7/7",
-      "mean_util_pct": 57.75,
-      "mean_seam_pct": 86.86,
-      "mean_profit_cny": 3793.6
+      "mean_defect_area_pct": 0.134,
+      "full_completion": "12/12",
+      "mean_util_pct": 56.98,
+      "mean_seam_pct": 87.27,
+      "mean_profit_cny": 3772.8
     },
     {
       "d_safe_mm": 8.0,
-      "full_completion": "7/7",
-      "mean_util_pct": 57.75,
-      "mean_seam_pct": 86.86,
-      "mean_profit_cny": 3793.6
+      "mean_defect_area_pct": 0.195,
+      "full_completion": "12/12",
+      "mean_util_pct": 56.98,
+      "mean_seam_pct": 87.27,
+      "mean_profit_cny": 3772.8
     },
     {
       "d_safe_mm": 12.0,
-      "full_completion": "7/7",
-      "mean_util_pct": 57.75,
-      "mean_seam_pct": 86.86,
-      "mean_profit_cny": 3793.6
+      "mean_defect_area_pct": 0.279,
+      "full_completion": "12/12",
+      "mean_util_pct": 56.98,
+      "mean_seam_pct": 87.27,
+      "mean_profit_cny": 3772.8
+    }
+  ],
+  "gamma_look_sweep": [
+    {
+      "gamma_look": 0.0,
+      "full_completion": "12/12",
+      "mean_util_pct": 56.98,
+      "mean_seam_pct": 88.01,
+      "mean_gold_pct": 96.86,
+      "mean_profit_cny": 3814.8
+    },
+    {
+      "gamma_look": 0.8,
+      "full_completion": "12/12",
+      "mean_util_pct": 56.98,
+      "mean_seam_pct": 87.27,
+      "mean_gold_pct": 96.96,
+      "mean_profit_cny": 3772.8
+    },
+    {
+      "gamma_look": 1.6,
+      "full_completion": "12/12",
+      "mean_util_pct": 56.98,
+      "mean_seam_pct": 87.27,
+      "mean_gold_pct": 96.96,
+      "mean_profit_cny": 3772.8
+    },
+    {
+      "gamma_look": 2.4,
+      "full_completion": "12/12",
+      "mean_util_pct": 56.98,
+      "mean_seam_pct": 87.27,
+      "mean_gold_pct": 96.96,
+      "mean_profit_cny": 3772.8
+    },
+    {
+      "gamma_look": 3.6,
+      "full_completion": "12/12",
+      "mean_util_pct": 56.98,
+      "mean_seam_pct": 87.27,
+      "mean_gold_pct": 96.96,
+      "mean_profit_cny": 3772.8
+    },
+    {
+      "gamma_look": 5.0,
+      "full_completion": "12/12",
+      "mean_util_pct": 56.98,
+      "mean_seam_pct": 87.41,
+      "mean_gold_pct": 96.03,
+      "mean_profit_cny": 3783.6
     }
   ],
   "multi_seed_stability": {
@@ -42,47 +98,48 @@
       {
         "seed": 42,
         "train_acc_pct": 100.0,
-        "mean_util_pct": 57.75,
-        "mean_seam_pct": 86.51,
-        "mean_gold_pct": 93.71,
-        "mean_profit_cny": 3845.7
+        "mean_util_pct": 56.98,
+        "mean_seam_pct": 87.94,
+        "mean_gold_pct": 97.28,
+        "mean_profit_cny": 3834.3
       },
       {
         "seed": 101,
         "train_acc_pct": 100.0,
-        "mean_util_pct": 57.75,
-        "mean_seam_pct": 86.51,
-        "mean_gold_pct": 93.71,
-        "mean_profit_cny": 3845.7
+        "mean_util_pct": 56.98,
+        "mean_seam_pct": 87.6,
+        "mean_gold_pct": 97.43,
+        "mean_profit_cny": 3828.7
       },
       {
         "seed": 2026,
         "train_acc_pct": 100.0,
-        "mean_util_pct": 57.75,
-        "mean_seam_pct": 86.51,
-        "mean_gold_pct": 93.71,
-        "mean_profit_cny": 3845.7
+        "mean_util_pct": 56.98,
+        "mean_seam_pct": 87.58,
+        "mean_gold_pct": 97.57,
+        "mean_profit_cny": 3818.8
       },
       {
         "seed": 7777,
         "train_acc_pct": 100.0,
-        "mean_util_pct": 57.75,
-        "mean_seam_pct": 86.51,
-        "mean_gold_pct": 93.71,
-        "mean_profit_cny": 3845.7
+        "mean_util_pct": 56.98,
+        "mean_seam_pct": 87.46,
+        "mean_gold_pct": 97.51,
+        "mean_profit_cny": 3808.2
       },
       {
         "seed": 9999,
         "train_acc_pct": 100.0,
-        "mean_util_pct": 57.75,
-        "mean_seam_pct": 86.51,
-        "mean_gold_pct": 93.71,
-        "mean_profit_cny": 3845.7
+        "mean_util_pct": 56.98,
+        "mean_seam_pct": 87.37,
+        "mean_gold_pct": 97.97,
+        "mean_profit_cny": 3818.4
       }
     ],
-    "profit_mean_cny": 3845.7,
-    "profit_std_cny": 0.0,
-    "seam_std_pct": 0.0
+    "profit_mean_cny": 3821.7,
+    "profit_std_cny": 10.12,
+    "seam_mean_pct": 87.59,
+    "seam_std_pct": 0.217
   },
   "pricing_regime_invariance": {
     "regimes": [
@@ -92,7 +149,7 @@
           "packingsolver_official": 1106.4,
           "jagua_official": 1038.1,
           "sparrow_official": 883.4,
-          "stone_aesthetic_ours": 2267.2
+          "stone_aesthetic_ours": 2270.0
         },
         "ratio_vs_packingsolver": 2.05,
         "ratio_vs_sparrow": 2.57
@@ -103,10 +160,10 @@
           "packingsolver_official": 1427.3,
           "jagua_official": 1292.5,
           "sparrow_official": 1026.7,
-          "stone_aesthetic_ours": 3570.0
+          "stone_aesthetic_ours": 3578.8
         },
-        "ratio_vs_packingsolver": 2.5,
-        "ratio_vs_sparrow": 3.48
+        "ratio_vs_packingsolver": 2.51,
+        "ratio_vs_sparrow": 3.49
       },
       {
         "regime": "Ultra-Luxury Emerald Onyx",
@@ -114,10 +171,10 @@
           "packingsolver_official": 2955.7,
           "jagua_official": 2691.6,
           "sparrow_official": 2211.8,
-          "stone_aesthetic_ours": 7077.5
+          "stone_aesthetic_ours": 7104.5
         },
-        "ratio_vs_packingsolver": 2.39,
-        "ratio_vs_sparrow": 3.2
+        "ratio_vs_packingsolver": 2.4,
+        "ratio_vs_sparrow": 3.21
       }
     ]
   },
@@ -125,56 +182,74 @@
     {
       "requested_parts": 20,
       "placed_parts": 20,
-      "runtime_sec": 1.818,
+      "runtime_sec": 2.583,
       "utilization_pct": 44.23,
-      "seam_pct": 84.3,
+      "seam_pct": 83.9,
       "strip_err_deg": 0.0,
       "rac_feasible": true
     },
     {
       "requested_parts": 40,
       "placed_parts": 40,
-      "runtime_sec": 1.854,
+      "runtime_sec": 2.329,
       "utilization_pct": 46.89,
-      "seam_pct": 84.3,
+      "seam_pct": 83.9,
       "strip_err_deg": 0.0,
       "rac_feasible": true
     },
     {
       "requested_parts": 60,
       "placed_parts": 60,
-      "runtime_sec": 1.723,
+      "runtime_sec": 2.39,
       "utilization_pct": 49.54,
-      "seam_pct": 84.3,
+      "seam_pct": 83.9,
       "strip_err_deg": 0.0,
       "rac_feasible": true
     },
     {
       "requested_parts": 80,
       "placed_parts": 80,
-      "runtime_sec": 1.737,
+      "runtime_sec": 2.38,
       "utilization_pct": 52.19,
-      "seam_pct": 84.3,
+      "seam_pct": 83.9,
       "strip_err_deg": 0.0,
       "rac_feasible": true
     },
     {
       "requested_parts": 120,
       "placed_parts": 120,
-      "runtime_sec": 1.907,
+      "runtime_sec": 2.503,
       "utilization_pct": 57.49,
-      "seam_pct": 84.3,
+      "seam_pct": 83.9,
       "strip_err_deg": 0.0,
       "rac_feasible": true
     },
     {
       "requested_parts": 160,
       "placed_parts": 160,
-      "runtime_sec": 1.825,
+      "runtime_sec": 2.475,
       "utilization_pct": 62.8,
-      "seam_pct": 84.3,
+      "seam_pct": 83.9,
       "strip_err_deg": 0.0,
       "rac_feasible": true
     }
-  ]
+  ],
+  "colloquial_compiler_audit": {
+    "tested_prompts": 10,
+    "strict_pass_count": 7,
+    "strict_pass_rate_pct": 70.0
+  },
+  "bookmatch_and_feedback_audit": {
+    "bookmatch_pairs_feasible": "12/12",
+    "bookmatch_mean_seam_pct": 96.1,
+    "bookmatch_mean_saliency_pct": 19.09,
+    "bookmatch_mean_runtime_sec": 0.148,
+    "feedback_initial_placed": "15/24",
+    "feedback_recovered": true,
+    "feedback_fully_recovered": true,
+    "feedback_relaxation_ids": [
+      "secondary_unlock_and_2pct_chamfer",
+      "multi_slab_spillover_zero_distortion"
+    ]
+  }
 }

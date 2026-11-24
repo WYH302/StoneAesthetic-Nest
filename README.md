@@ -18,22 +18,20 @@
 **English**  
 In custom natural stone fabrication (marble, landscape onyx, and travertine), layout quality depends not only on raw sheet utilization, but also on **cross-joint vein continuity, natural grain alignment, structural crack avoidance, and interior cutout reuse**. Even full-strength geometric packing engines treat stock sheets as blank isotropic containers—often scattering multi-panel feature walls into mismatched patchworks or rotating elongated strips across natural mineral veins at identical raw area utilization.
 
-`StoneAesthetic-Nest` is an open-source research prototype exploring how anisotropic visual fields, polymorphic order compilation, and lightweight neural-combinatorial search can work together to assist natural stone CAD/CAM workflows:
-1. **Anisotropic Slab Field Perception**: Estimates surface fracture buffers (`3–5 mm` safety margin), 2D structure-tensor vein orientation $\theta_{\text{flow}}(x,y)$, and a saliency-guided *Golden Vein Zone* $\Omega_{\text{gold}}$.
-2. **Polymorphic 3-Tier Workshop Order AST**: Parses flexible natural-language cutting descriptions (`cm`/`mm` unit normalization) across diverse real-world order archetypes: arbitrary $R\times C$ vein-matched grids (`3×2` feature walls, `1×4` landscape screens, `2×2` lobby medallions, `1×2` twin vanities), monolithic hollow sink islands, L-shaped corner bars, circular coffee tables, grain-locked strips (stair treads, window sills, thresholds, dado strips), and triangle/hexagon/square offcuts.
-3. **Bi-Level Neural-Combinatorial Nesting & Sink-Hole PiP**: Uses a compact 12-D PyTorch residual ranker (`AestheticVeinRankerMLP`, `3,085` parameters) with Tier-2 capacity lookahead to anchor core assemblies inside $\Omega_{\text{gold}}$, aligns collinear bridge-saw strips strictly along $\theta_{\text{flow}}$ (`0.0°` error), harvests interior kitchen-island sink cutouts via *Part-in-Part* (PiP) reuse, and tessellates peripheral remnants using alternating `▲▼` equilateral honeycombs, 2D hexagonal lattices, or square grids.
-4. **Certifying Geometry & Dual Deliverables**: Verifies every polygon via an independent `RAC-Checker` (`Shapely`) and exports both a **13-layer AutoCAD R2010 `.dxf`** toolpath file and a **Client Dry-Lay Preview** image.
+`StoneAesthetic-Nest` is an open-source research prototype coupling anisotropic visual perception, polymorphic workshop order compilation, lightweight neural-combinatorial search, and certified industrial CAM toolpath generation:
+1. **Anisotropic Slab Field & Topology-Preserving Crack Perception**: Combines automatic 4-corner ArUco (`DICT_4X4_50`) / dual-polarity homography calibration, a `96×60` integral-image ($O(1)$ query) structure-tensor local orientation field $\theta_{\text{flow}}(x,y)$ & Golden Vein Zone $\Omega_{\text{gold}}$, and dual-mode crack buffering (`Black-Hat Adaptive` zero-GPU CPU or `CrackSeg-MV3-clDice`, `3.17M` params, `72.5%` strict FG-IoU / `86.5%` ODS F1 / `18.4 ms` on RTX 3090).
+2. **Polymorphic 3-Tier Workshop Order AST & Zero-Distortion Feedback**: Parses colloquial Chinese cutting descriptions (`cm`/`mm` normalization, spoken fractions, negation handling) across 6 real-world architectural archetypes (`3×2` feature walls, `1×4` landscape screens, hollow sink islands with interior *Part-in-Part* recovery, L-shaped bars, circular tables, `2×2` medallions) plus twin-slab mirrored **Bookmatching** (`96.1%` mirrored seam continuity) and zero-distortion **Multi-Slab Spillover** recovery (`100%` recovery without shrinking customer parts).
+3. **Bi-Level Neural-Combinatorial Nesting (`STRtree` + Coarse-to-Fine)**: Uses an unfrozen 12-D PyTorch residual ranker (`AestheticVeinRankerMLP`, `3,085` params, `100.0%` OOF rank accuracy on unseen varieties) with Tier-1/Tier-2 coupled backtracking, `48→12 mm` + micro-angle refinement, and Shapely `STRtree` spatial indexing to anchor core assemblies inside $\Omega_{\text{gold}}$, align bridge-saw strips strictly along $\theta_{\text{flow}}$ (`0.0°` error), and tessellate peripheral remnants (`▲▼` honeycombs / hexagons / squares).
+4. **Certifying Geometry & Industrial CAM Deliverables**: Verifies every polygon via an independent `RAC-Checker` (`100%` pass rate) and exports a **13-layer AutoCAD R2010 `.dxf`** featuring **4-corner GTSP 2-Opt rapid-air routing (`-73.6%` air travel)**, **collinear bridge-saw common-line merging (`-38.6%` segments, `2.63 m/slab` saved)**, **`100.0%` neighbor- & defect-safe waterjet pierce points**, and a **Client Dry-Lay Preview**.
 
 **简体中文**  
 在天然大理石、山水玉与洞石等定制加工场景中，排版的商业价值不仅取决于板材出材率，更取决于**核心件跨刀缝连纹对花、长条件顺纹一致、暗裂安全避让以及挖孔余料二次套裁**。即便是最顶尖的纯几何排样求解器，由于默认将大板视为均匀白板，往往在相同利用率下将多联背景墙打散成“阴阳脸”，或将踏步/飘窗旋转成横纹废品。
 
-`StoneAesthetic-Nest` 是一个面向天然石材排版与套裁的轻量级学术与工程探索原型，尝试将视觉纹理场分析、多变订单解析与多级组合优化结合，辅助车间完成数控刀路规划与客户干铺确认：
-1. **石板体检与美学场解析**：提取外扩 `3–5 mm` 安全缓冲区的裂纹禁切区、二维结构张量主纹流向 $\theta_{\text{flow}}(x,y)$，以及高纹理能量与低色斑的**黄金主纹带** $\Omega_{\text{gold}}$。
-2. **多变定制订单三维解析**：支持口语化中文描述与 `厘米/毫米` 自动换算，灵活适配 6 大类常见定制订单：任意 $R\times C$ 连纹拼花（`3×2` 背景墙、`1×4` 四联屏、`2×2` 大堂田字格、`1×2` 双联洗手台）、中岛挖孔台面、L 形转角吧台、圆形茶几、顺纹长条（楼梯踏步/飘窗/门槛/护墙板）以及等边三角形、正六边形或方形余料砖。
-3. **多级追纹与孔内/边角余料套裁**：通过 12 维轻量级残差评分网络配合容量前瞻锁定核心大件，沿主纹方向共线排布 `0.0°` 误差桥切长条，并在主件锁死后同步完成**水槽内孔 Part-in-Part 孔内套裁**以及外围 `▲▼` 蜂窝三角 / 正六边形 / 方砖余料密铺。
-4. **独立几何校核与双向交付**：所有排样结果均经独立验收器 `RAC-Checker` 校核（零重叠、零压裂纹、严格满足锯缝间距），一键导出 **13 层 AutoCAD R2010 `.dxf` 数控图纸** 与 **客户干铺效果图（Dry-Lay Preview）**。
-
-> *Note / 说明：This repository is shared as a modest research and educational prototype. Real-world CNC stone production involves diverse quarry variations, beveling tolerances, and machine kinematics—feedback, issues, and improvements from practitioners and researchers are warmly welcome. 本仓库仅作为学术研究与工程交流的探索性原型，实际石材加工工艺复杂多样，诚挚欢迎同行批评指正与共同完善。*
+`StoneAesthetic-Nest` 是一个面向天然石材排版与数控刀路规划的轻量级开源原型：
+1. **石板体检、裂纹拓扑分割与各向异性美学场**：支持 ArUco 四角标定纸（`DICT_4X4_50`）与双极性边缘透视矫正、`96×60` 积分图 $O(1)$ 局部纹向场 $\theta_{\text{flow}}(x,y)$ 及黄金主纹带 $\Omega_{\text{gold}}$，并提供零 GPU `Black-Hat Adaptive`（CPU `17.8 ms`）与 `CrackSeg-MV3-clDice`（RTX 3090 `18.4 ms` / `54.4 FPS`，`DeepCrack-237` 上 `72.5%` 严格前景 IoU / `86.5%` ODS F1）双后端裂纹检测。
+2. **多变定制订单解析、镜面对纹与零缩尺跨板溢出**：支持口语化中文描述（如“半米见方”“一米二”“不要马赛克”等）与 6 大类常见定制订单，内置双板镜面对纹（Bookmatching，镜像连续度 `96.1%`）以及拒绝缩尺变型的**跨板溢出恢复闭环（100% 恢复）**。
+3. **两级神经-组合套裁（空间索引 + 粗到精微调 + Tier-1/Tier-2 耦合回溯）**：采用未冻结 12 维轻量残差网络（`3,085` 参数，未知石材品种 5 折交叉验证排序准确率 `100.0%`），结合 `48→12 mm` 粗到精搜索与 `STRtree` 空间索引，锁死核心连纹、实现 `0.0°` 顺纹误差长条排布以及孔内/边角余料密铺。
+4. **独立几何校核与工业级 CAM 刀路导出**：所有排样均经独立 `RAC-Checker` 100% 验收，一键导出 **13 层 AutoCAD R2010 `.dxf`**（含 **4 角点 GTSP 2-Opt 空程优化 `-73.6%`**、**桥切共线合并 `-38.6%` 刀段**、**100% 零碰撞穿孔安全点**）及 **客户干铺效果图**。
 
 ---
 
@@ -72,16 +70,26 @@ pip install -r requirements.txt
 ```bash
 python quickstart_demo.py
 ```
-Running `quickstart_demo.py` processes `examples/sample_slabs/Onyx011_Jade_Onyx.jpg` and writes the following deliverables to `outputs_demo/`:
+Running `quickstart_demo.py` processes `examples/sample_slabs/Onyx011_Jade_Onyx.jpg` and writes the deliverables to `outputs_demo/`:
 - `demo_jade_onyx_overlay.png` — Slab cutting layout overlay with Golden Vein Zone & numbered parts
 - `demo_jade_onyx_dry_lay_preview.png` — Assembled feature panel + directional strips + offcut mosaic strip
-- `demo_jade_onyx_cutting.dxf` — 13-layer AutoCAD R2010 `.dxf` separating straight bridge-saw cuts (`BRIDGE_SAW_STRAIGHT_CUTS`) and waterjet contours
+- `demo_jade_onyx_cutting.dxf` — 13-layer AutoCAD R2010 `.dxf` with GTSP air-travel optimization, collinear bridge-saw common-line merging, and collision-free waterjet pierce points
+
+### 3. Real Workshop Slab Photos (ArUco 4-Corner Calibration Kit) | 真实工厂大板实拍模式
+Print `real_yunfu_slabs/ArUco_4Corners_A4_Print.pdf` (or capture a clean overhead slab photo), drop your photos into `real_yunfu_slabs/photos/`, and run:
+```bash
+# Quick end-to-end self-check on a synthetic tilted ArUco workshop photo:
+python experiments/run_real_yunfu_slab_case_study.py --smoke-test
+
+# Process your real workshop slab photos (auto-uses GPU CrackSeg-MV3-clDice or CPU Black-Hat):
+python experiments/run_real_yunfu_slab_case_study.py --crack-backend auto
+```
 
 ---
 
 ## Reference Evaluation Summary | 实验参考指标
 
-Evaluated across `YunfuPoly-24` (`24` uncut `3000×1800 mm` CC0 marble, onyx, and travertine slabs spanning `6` polymorphic architectural order archetypes `A1`–`A6`, 100% `RAC-Checker` verified, `1.92 s/slab` CPU). External C++ and Rust baselines execute unmodified official compiled binaries (`EURO/ESICUP-14` native strip density: `70.4%` for `Jagua-rs LBF`, `79.4%` at `2 s` and `84.0%` at `60 s` for Official Rust `Sparrow v0.3`; `Baldacci-6` defective Bin-0 utilization: `70.4%` for Official C++ `PackingSolver`, `65.9%` for our geometric core; Official `DeepCrack-237` crack IoU on CPU / RTX 3090: `54.8%` zero-GPU `Black-Hat` vs. `49.7%` zero-shot `SAM 2.1 Hiera-Tiny` vs. `70.1%` optional `0.40M`-param `CrackUNet-Lite`):
+Evaluated across `YunfuPoly-24` (`24` uncut `3000×1800 mm` CC0 marble, onyx, and travertine slabs spanning `6` polymorphic architectural order archetypes `A1`–`A6`, `100%` `RAC-Checker` verified, `3.67 s/slab` clean CPU; fold-isolated 5-fold OOF CV: `100.0%` rank accuracy, `87.2%` seam, `96.7%` Golden hit, `CNY 3,750`). External C++ and Rust baselines execute unmodified official compiled binaries (`EURO/ESICUP-14`: `70.4%` `Jagua-rs LBF`, `79.4%` at `2 s` / `84.0%` at `60 s` `Sparrow v0.3`; `Baldacci-6`: `70.4%` `PackingSolver`, `65.9%` our geometric core):
 
 | Method / 方法 | Core Seam Continuity | Golden-Zone Hit | Strip Vein Error | Offcut Pieces | Net Utilization | Net Profit (CNY) |
 | :--- | :---: | :---: | :---: | :---: | :---: | :---: |
@@ -91,7 +99,17 @@ Evaluated across `YunfuPoly-24` (`24` uncut `3000×1800 mm` CC0 marble, onyx, an
 | `Sparrow v0.3` (Official Rust) | 33.0% | 18.9% | 55.1° | 35.3 | **57.0%** | 1,272 |
 | `RL-PPO-Adapted` | 52.6% | 21.2% | 25.1° | 13.5 | 48.6% | 1,273 |
 | `GFPack++-Adapted` | 52.6% | 21.2% | 22.0° | 13.5 | 48.5% | 1,354 |
-| **StoneAesthetic-Nest (Prototype)** | **86.8%** | **95.4%** | **0.0°** | **35.3** | **57.0%** | **3,749** |
+| **StoneAesthetic-Nest (Ours)** | **87.7%** | **96.4%** | **0.0°** | **35.3** | **57.0%** | **3,759** |
+
+**Official `DeepCrack` (`300` train / `237` unseen test) Crack Segmentation (`RTX 3090` & `CPU`)**:
+- `Black-Hat Adaptive` (Ours, zero-GPU CPU): `0.00M` params, `17.8 ms` (`56.3 FPS`), `54.8%` FG-IoU, `67.5%` Strict F1.
+- `CrackSeg-MV3-clDice` (Ours, RTX 3090): `3.17M` params, `18.4 ms` (`54.4 FPS`, `378 MiB` VRAM), **`72.5%` FG-IoU**, **`82.8%` Strict F1**, **`86.5%` ODS Global F1**, **`86.3%` OIS F1**, **`86.1%` 2-Class mIoU** — matching or exceeding heavier published CNN-Transformer hybrids (`DTrCNet` `84.7%` ODS, `SimCrack` `85.7%` ODS, `EfficientCrackNet` `85.9%` F1) at `1.16–1.88×` faster inference.
+
+**Industrial CAM & Robustness Highlights**:
+- **4-Corner GTSP 2-Opt Routing**: Rapid air-travel reduced from `29.76 m → 7.14 m` (**`-73.6%`**), with **`100.0%`** neighbor- and defect-safe waterjet pierce points.
+- **Bridge-Saw Common-Line Merging**: Collinear shared cuts merged from `34.7 → 21.3` segments (**`-38.6%`**, saving `2.63 m/slab`).
+- **Fair 6-Channel Context CNN Audit**: Even when given the exact Golden-Zone, saliency, and alignment channels, `MobileNetV3-S` (`53.7%`) and `ResNet-18` (`46.8%`) overfit to training stone RGB on unseen varieties, while our unfrozen 12-D physics MLP reaches **`100.0 ± 0.0%`** (`1.68M` candidates/s on CPU).
+- **Genuine Hyperparameter & Pricing Invariance**: Sweeping $d_{\text{safe}} \in [2,12]\text{ mm}$ (`< 0.2%` profit drift), $\gamma_{\text{look}} \in [0,5]$ (`< 1.1%` profit drift), 5 unfrozen seeds (`CV = 0.26%`), scalability up to `160` parts/slab (`2.33–2.58 s` flat CPU), and `2.05–3.49×` profit lead across Mid-Tier Carrara, Standard Yunfu, and Ultra-Luxury Onyx pricing regimes.
 
 ---
 
@@ -99,16 +117,19 @@ Evaluated across `YunfuPoly-24` (`24` uncut `3000×1800 mm` CC0 marble, onyx, an
 
 ```text
 StoneAesthetic-Nest/
-├── assets/                     # Architecture, teaser, polymorphic gallery, and dry-lay figures
-├── checkpoints/                # Pretrained lightweight 12-D AestheticVeinRankerMLP weights
+├── assets/                     # Architecture, teaser, polymorphic gallery, ablation & dry-lay figures
+├── checkpoints/                # Pretrained 12-D AestheticVeinRankerMLP (16 KB) & CrackSeg-MV3-clDice (12.9 MB)
 ├── examples/
 │   ├── sample_slabs/           # CC0 seamless raw onyx & travertine textures (AmbientCG)
 │   └── sample_outputs/         # Reference 13-layer .DXF & Dry-Lay outputs (A1 Wall + A3 Sink-Hole PiP)
+├── experiments/                # Reproducible benchmark, ablation, RTX 3090 crack & real-slab case-study scripts
+│   └── results/                # JSON audit logs for YunfuPoly-24, Exp D, Exp E (DeepCrack), Exp F & ESICUP-14
+├── real_yunfu_slabs/           # Printable A4 ArUco 4-corner calibration PDF & workshop photo manifest template
 ├── src/
-│   ├── vision/                 # Homography, fracture buffering, 2D structure tensor & Golden Zone
-│   ├── llm_compiler/           # Clause-scoped polymorphic 3-tier order AST compiler & relaxation loop
-│   ├── solver_core/            # Multi-tier neural-combinatorial engine, native C++/Rust wrappers & RAC-Checker
-│   └── ui_dxf/                 # 13-layer AutoCAD R2010 DXF exporter, Dry-Lay renderer & Web API
+│   ├── vision/                 # ArUco/dual-polarity homography, crack buffering, 96x60 integral texture & flow field
+│   ├── llm_compiler/           # Colloquial polymorphic 3-tier order AST compiler & zero-distortion spillover loop
+│   ├── solver_core/            # STRtree spatial index, coarse-to-fine coupled nesting, bookmatching & RAC-Checker
+│   └── ui_dxf/                 # 13-layer GTSP/common-line AutoCAD R2010 DXF exporter, Dry-Lay renderer & Web API
 ├── quickstart_demo.py          # One-command end-to-end demonstration script
 ├── requirements.txt            # Python package dependencies
 └── LICENSE                     # MIT Open-Source License
@@ -119,27 +140,13 @@ StoneAesthetic-Nest/
 ## Acknowledgments & Data Credits | 致谢与数据来源
 
 - Raw uncut marble, onyx, and travertine PBR scans in `examples/sample_slabs/` originate from [AmbientCG](https://ambientcg.com/) under the **CC0 1.0 Universal Public Domain Dedication**.
-- External official geometric solvers evaluated for fair reference include [PackingSolver](https://github.com/fontanf/packingsolver), [jagua-rs](https://github.com/JeroenGar/jagua-rs), and [Sparrow](https://github.com/JeroenGar/sparrow), along with the [EURO ESICUP](https://www.euro-online.org/websites/esicup/) and Baldacci defective-sheet community benchmarks.
-
----
-
-## Design Insights & Engineering Pitfalls | 设计思考与踩坑记录
-
-While iterating on real marble, onyx, and travertine slabs, three practical failures reshaped our design:
-1. **Dark Onyx False Crack Masking**: Uniform multi-scale morphological closing (`r = 9, 23, 45`) worked cleanly on light Carrara marble, yet misclassified broad emerald and amber mineral veins on dark onyx as structural cracks. Switching dynamically to narrow hairline kernels (`r = 9`) whenever median slab luminance drops below `135` resolved vein preservation without needing GPU weights.
-2. **Oblique Lattice Gaps (`> 130 mm`)**: Stepping tilted `R×C` wall tiles along axis-aligned bounding boxes at `18°` mineral flow opened triangular dead zones exceeding `130 mm` between adjacent slabs. Parameterizing the cutting grid directly on the rotated orthonormal basis `(u, v)` with exact blade-kerf pitches `(w + d_kerf, h + d_kerf)` restored continuous mortar joints.
-3. **Why Physics Descriptors Outperform End-to-End RGB CNNs on Unseen Stone**: Under strict variety-grouped 5-fold cross-validation (`864` candidate pairs across `12` stone varieties), RGB `MobileNetV3-Small` (`49.1%`) and `ResNet-18` (`59.8%`) overfit to training stone colors. Extracting 12 variety-invariant physical descriptors (Golden-Zone overlap, structure-tensor coherence, seam gradient correlation, blemish purity, and clearance) reached **`98.8%` out-of-fold accuracy** with only `3,085` parameters on CPU.
-
-在真实石材大板迭代过程中，我们踩过三个印象深刻的坑，也直接塑造了最终方案：
-1. **深色山水玉暗裂误判**：多尺度黑帽算子在浅色大理石上表现很好，但在深色翡翠玉/琥珀玉上会把宽阔的天然主纹误判为裂纹。引入中位亮度阈值（`135`）自适应切换细核（`r = 9`）后，零 GPU 即可稳定区分发丝暗裂与高价值主纹。
-2. **斜纹拼花的边界三角死区**：若直接按水平包围盒步进旋转后的多联墙板，在 `18°` 主纹角下会在相邻板之间产生超 `130 mm` 的无效三角缝。改为直接在旋转正交基 `(u, v)` 上按精确刀缝步距排布后，才真正实现跨缝连纹。
-3. **跨品种泛化为何选 12 维物理特征而非端到端 RGB CNN**：在严格按石材品种划分的 5 折交叉验证下，RTX 3090 上训练的 RGB `MobileNetV3-Small`（`49.1%`）与 `ResNet-18`（`59.8%`）极易过拟合训练色系；而仅 `3,085` 参数的 12 维物理-美学特征 MLP 在未知新品种上取得了 **`98.8%`** 的排序准确率，且在普通车间 CPU 上即可毫秒级评分。
+- External official geometric solvers evaluated for fair reference include [PackingSolver](https://github.com/fontanf/packingsolver), [jagua-rs](https://github.com/JeroenGar/jagua-rs), and [Sparrow](https://github.com/JeroenGar/sparrow), along with the [EURO ESICUP](https://www.euro-online.org/websites/esicup/), Baldacci defective-sheet, and [DeepCrack](https://github.com/yhlleo/DeepCrack) community benchmarks.
 
 ---
 
 ## Citation | 引用格式
 
-If you find this open-source prototype or polymorphic stone benchmark helpful for your research or engineering exploration, please consider citing:
+If you find this open-source prototype, polymorphic stone benchmark, or real-slab ArUco calibration kit helpful, please consider citing:
 
 ```bibtex
 @article{wu2026stoneaesthetic,

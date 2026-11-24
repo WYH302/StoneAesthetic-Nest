@@ -1,0 +1,73 @@
+{
+  "gpu_name": "NVIDIA GeForce RTX 3090",
+  "method": "CrackSeg-MV3-clDice (Ours, Opt. GPU SOTA)",
+  "params": 3171115,
+  "params_m": 3.17,
+  "train_epochs": 65,
+  "train_gpu_sec": 1480.86,
+  "train_peak_vram_mib": 6844.5,
+  "infer_peak_vram_mib": 377.5,
+  "pure_gpu_infer_ms": 18.39,
+  "pure_gpu_infer_fps": 54.4,
+  "e2e_single_ms": 41.34,
+  "e2e_single_fps": 24.2,
+  "e2e_tta_ms": 81.74,
+  "e2e_tta_fps": 12.2,
+  "deepcrack_237_single": {
+    "strict_mean_iou_pct": 71.76,
+    "strict_mean_f1_pct": 82.32,
+    "strict_global_iou_pct": 74.05,
+    "strict_global_f1_pct": 85.09,
+    "strict_recall_pct": 79.02,
+    "buf3px_iou_pct": 67.91,
+    "buf3px_f1_pct": 79.8,
+    "safety_crack_recall_pct": 85.87,
+    "two_class_miou_pct": 85.25
+  },
+  "deepcrack_237_tta": {
+    "strict_mean_iou_pct": 72.49,
+    "strict_mean_f1_pct": 82.83,
+    "strict_global_iou_pct": 74.48,
+    "strict_global_f1_pct": 85.37,
+    "strict_recall_pct": 79.48,
+    "buf3px_iou_pct": 68.21,
+    "buf3px_f1_pct": 80.04,
+    "safety_crack_recall_pct": 86.21,
+    "two_class_miou_pct": 85.63
+  },
+  "deepcrack_20_subset": {
+    "strict_mean_iou_pct": 77.74,
+    "strict_mean_f1_pct": 87.08,
+    "strict_global_iou_pct": 77.26,
+    "strict_global_f1_pct": 87.17,
+    "strict_recall_pct": 96.75,
+    "buf3px_iou_pct": 86.87,
+    "buf3px_f1_pct": 92.84,
+    "safety_crack_recall_pct": 98.84,
+    "two_class_miou_pct": 88.66
+  },
+  "standard_deepcrack_metrics_single": {
+    "ods_global_f1_pct": 85.96,
+    "ods_mean_f1_pct": 82.86,
+    "ods_best_thresh_glob": 0.125,
+    "ods_best_thresh_mean": 0.175,
+    "ois_f1_pct": 84.77,
+    "aiu_fg_pct": 70.82,
+    "fg_iou_at_05_pct": 71.76,
+    "fg_iou_ods_pct": 72.4,
+    "two_class_miou_at_05_pct": 85.25,
+    "two_class_miou_ods_pct": 85.58
+  },
+  "standard_deepcrack_metrics_tta": {
+    "ods_global_f1_pct": 86.48,
+    "ods_mean_f1_pct": 83.7,
+    "ods_best_thresh_glob": 0.175,
+    "ods_best_thresh_mean": 0.225,
+    "ois_f1_pct": 86.26,
+    "aiu_fg_pct": 71.05,
+    "fg_iou_at_05_pct": 72.49,
+    "fg_iou_ods_pct": 73.47,
+    "two_class_miou_at_05_pct": 85.63,
+    "two_class_miou_ods_pct": 86.14
+  }
+}

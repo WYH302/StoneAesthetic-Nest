@@ -83,16 +83,280 @@ def _two_opt_tier_order(points: list[tuple[float, float]], indices: list[int], s
     return best
 
 
+def _find_safe_pierce_candidates(
+    outer_pts: list[tuple[float, float]],
+    part_idx: int,
+    all_part_shps: list[tuple[int, ShapelyPolygon, ShapelyPolygon | None]],
+    obstacle_shps: list[ShapelyPolygon],
+    w: float,
+    h: float,
+    lead_in_mm: float,
+    is_inner_hole: bool = False,
+) -> list[tuple[tuple[float, float], tuple[float, float], bool]]:
+    """Find collision-free scrap-zone pierce candidates across contour vertices (GTSP multi-entry).
+
+    Unlike naive single-part containment checks, verifies every candidate pierce point against
+    ALL placed parts (preventing waterjet pierce damage to neighbor parts across narrow 3mm kerfs)
+    and defect hazard polygons.
+    """
+    shp = ShapelyPolygon(outer_pts)
+    if not shp.is_valid:
+        shp = shp.buffer(0)
+    c_pt = shp.centroid
+
+    # Pick up to 4 well-spread candidate vertices (bottom-left, top-right, top-left, bottom-right)
+    n_v = len(outer_pts)
+    if n_v <= 4:
+        cand_verts = list(outer_pts)
+    else:
+        idxs = sorted(
+            {
+                min(range(n_v), key=lambda i: outer_pts[i][0] + outer_pts[i][1]),
+                max(range(n_v), key=lambda i: outer_pts[i][0] + outer_pts[i][1]),
+                min(range(n_v), key=lambda i: outer_pts[i][0] - outer_pts[i][1]),
+                max(range(n_v), key=lambda i: outer_pts[i][0] - outer_pts[i][1]),
+            }
+        )
+        cand_verts = [outer_pts[i] for i in idxs]
+
+    def _is_globally_safe(pt_xy: tuple[float, float]) -> bool:
+        px, py = pt_xy
+        if px < 0.8 or px > w - 0.8 or py < 0.8 or py > h - 0.8:
+            return False
+        pt = ShapelyPoint(px, py)
+        if is_inner_hole:
+            if not shp.contains(pt):
+                return False
+            # Also ensure inner-hole pierce doesn't hit any PiP child nested inside the hole
+            for o_idx, o_shp, _ in all_part_shps:
+                if o_idx == part_idx:
+                    continue
+                if o_shp.contains(pt) or o_shp.distance(pt) < 0.45:
+                    return False
+            return True
+        # Outer contour: must lie strictly outside self, all neighbor parts (allowing legal parent hole scrap), and all defects
+        if shp.contains(pt):
+            return False
+        for o_idx, o_shp, o_hole in all_part_shps:
+            if o_idx == part_idx:
+                continue
+            if o_hole is not None and o_hole.contains(pt):
+                continue  # Pierce inside parent's scrap sink-hole is safe
+            if o_shp.contains(pt) or o_shp.distance(pt) < 0.45:
+                return False
+        for obs in obstacle_shps:
+            if obs.contains(pt):
+                return False
+        return True
+
+    results: list[tuple[tuple[float, float], tuple[float, float], bool]] = []
+    scale_tries = (1.0, 0.72, 0.48, 0.30)
+    for v in cand_verts:
+        dx = (c_pt.x - v[0]) if is_inner_hole else (v[0] - c_pt.x)
+        dy = (c_pt.y - v[1]) if is_inner_hole else (v[1] - c_pt.y)
+        norm = max(1e-6, math.hypot(dx, dy))
+        ux, uy = dx / norm, dy / norm
+        # Try outward/inward radial vector plus slight tangential offsets to dodge neighbor kerfs
+        found_v: tuple[tuple[float, float], tuple[float, float], bool] | None = None
+        for sc in scale_tries:
+            d_try = max(0.85, lead_in_mm * sc)
+            for rot_deg in (0.0, 28.0, -28.0, 60.0, -60.0):
+                rr = math.radians(rot_deg)
+                rx = ux * math.cos(rr) - uy * math.sin(rr)
+                ry = ux * math.sin(rr) + uy * math.cos(rr)
+                cand_p = (
+                    min(w - 0.8, max(0.8, v[0] + d_try * rx)),
+                    min(h - 0.8, max(0.8, v[1] + d_try * ry)),
+                )
+                if _is_globally_safe(cand_p):
+                    found_v = (v, cand_p, True)
+                    break
+            if found_v is not None:
+                break
+        if found_v is not None:
+            results.append(found_v)
+
+    if not results:
+        # Fallback to tightest non-self-intersecting scrap pierce on bottom-left vertex
+        v0 = min(outer_pts, key=lambda xy: (xy[0] + xy[1]))
+        dx = (c_pt.x - v0[0]) if is_inner_hole else (v0[0] - c_pt.x)
+        dy = (c_pt.y - v0[1]) if is_inner_hole else (v0[1] - c_pt.y)
+        norm = max(1e-6, math.hypot(dx, dy))
+        p_fb = (
+            min(w - 0.8, max(0.8, v0[0] + 0.9 * (dx / norm))),
+            min(h - 0.8, max(0.8, v0[1] + 0.9 * (dy / norm))),
+        )
+        results.append((v0, p_fb, _is_globally_safe(p_fb)))
+    return results
+
+
+def _merge_collinear_bridge_saw_cuts(
+    segments: list[tuple[tuple[float, float], tuple[float, float]]],
+    angle_tol_deg: float = 1.5,
+    offset_tol_mm: float = 4.5,
+    gap_tol_mm: float = 40.0,
+) -> tuple[list[tuple[tuple[float, float], tuple[float, float]]], float, float]:
+    """Merge collinear adjacent/shared Tier-1 & Tier-2 straight edges into unified bridge-saw passes."""
+    if not segments:
+        return [], 0.0, 0.0
+    raw_len = sum(math.hypot(b[0] - a[0], b[1] - a[1]) for a, b in segments)
+    # Cluster by canonical line angle (in [0, 180)) and signed perpendicular offset
+    groups: list[dict[str, Any]] = []
+    for a, b in segments:
+        dx, dy = b[0] - a[0], b[1] - a[1]
+        seg_l = math.hypot(dx, dy)
+        if seg_l < 1e-3:
+            continue
+        ang = math.degrees(math.atan2(dy, dx)) % 180.0
+        rad = math.radians(ang)
+        ux, uy = math.cos(rad), math.sin(rad)
+        nx, ny = -uy, ux
+        perp = a[0] * nx + a[1] * ny
+        t0 = a[0] * ux + a[1] * uy
+        t1 = b[0] * ux + b[1] * uy
+        if t1 < t0:
+            t0, t1 = t1, t0
+
+        matched = False
+        for g in groups:
+            adiff = abs((ang - g["ang"] + 90.0) % 180.0 - 90.0)
+            if adiff <= angle_tol_deg and abs(perp - g["perp"]) <= offset_tol_mm:
+                g["intervals"].append((t0, t1))
+                matched = True
+                break
+        if not matched:
+            groups.append({"ang": ang, "ux": ux, "uy": uy, "nx": nx, "ny": ny, "perp": perp, "intervals": [(t0, t1)]})
+
+    merged_segs: list[tuple[tuple[float, float], tuple[float, float]]] = []
+    merged_len = 0.0
+    for g in groups:
+        ivs = sorted(g["intervals"], key=lambda x: x[0])
+        cur_s, cur_e = ivs[0]
+        merged_ivs: list[tuple[float, float]] = []
+        for s, e in ivs[1:]:
+            if s <= cur_e + gap_tol_mm:
+                cur_e = max(cur_e, e)
+            else:
+                merged_ivs.append((cur_s, cur_e))
+                cur_s, cur_e = s, e
+        merged_ivs.append((cur_s, cur_e))
+        ux, uy, nx, ny, perp = g["ux"], g["uy"], g["nx"], g["ny"], g["perp"]
+        for s, e in merged_ivs:
+            p0 = (round(s * ux + perp * nx, 3), round(s * uy + perp * ny, 3))
+            p1 = (round(e * ux + perp * nx, 3), round(e * uy + perp * ny, 3))
+            merged_segs.append((p0, p1))
+            merged_len += e - s
+
+    return merged_segs, round(raw_len / 1000.0, 3), round(merged_len / 1000.0, 3)
+
+
+def _gtsp_two_opt_tier(
+    contours: list[dict[str, Any]],
+    indices: list[int],
+    start_xy: tuple[float, float],
+) -> tuple[list[int], dict[int, int]]:
+    """Generalized TSP (GTSP) greedy + 2-opt with dynamic multi-vertex entry selection."""
+    if not indices:
+        return [], {}
+    rem = list(indices)
+    nn_order: list[int] = []
+    chosen_cand: dict[int, int] = {}
+    cx, cy = start_xy
+    while rem:
+        best_pair: tuple[float, int, int] | None = None
+        for idx in rem:
+            for c_i, (_, p_xy, _) in enumerate(contours[idx]["pierce_candidates"]):
+                d = math.hypot(p_xy[0] - cx, p_xy[1] - cy)
+                if best_pair is None or d < best_pair[0]:
+                    best_pair = (d, idx, c_i)
+        assert best_pair is not None
+        _, b_idx, b_ci = best_pair
+        nn_order.append(b_idx)
+        chosen_cand[b_idx] = b_ci
+        cx, cy = contours[b_idx]["pierce_candidates"][b_ci][1]
+        rem.remove(b_idx)
+
+    def _optimize_entries(seq: list[int]) -> tuple[float, dict[int, int]]:
+        # Dynamic programming over up to 4 candidate pierce corners per contour along fixed sequence
+        n_s = len(seq)
+        dp_cost: list[list[float]] = []
+        dp_prev: list[list[int]] = []
+        c0_list = contours[seq[0]]["pierce_candidates"]
+        dp_cost.append([math.hypot(c[1][0] - start_xy[0], c[1][1] - start_xy[1]) for c in c0_list])
+        dp_prev.append([-1] * len(c0_list))
+        for step in range(1, n_s):
+            prev_cands = contours[seq[step - 1]]["pierce_candidates"]
+            cur_cands = contours[seq[step]]["pierce_candidates"]
+            row_c: list[float] = []
+            row_p: list[int] = []
+            for cc in cur_cands:
+                px, py = cc[1]
+                best_v = 1e18
+                best_j = 0
+                for j, pc in enumerate(prev_cands):
+                    v = dp_cost[-1][j] + math.hypot(px - pc[1][0], py - pc[1][1])
+                    if v < best_v:
+                        best_v = v
+                        best_j = j
+                row_c.append(best_v)
+                row_p.append(best_j)
+            dp_cost.append(row_c)
+            dp_prev.append(row_p)
+        end_j = int(min(range(len(dp_cost[-1])), key=lambda j: dp_cost[-1][j]))
+        best_tot = dp_cost[-1][end_j]
+        sel: dict[int, int] = {}
+        cur_j = end_j
+        for step in range(n_s - 1, -1, -1):
+            sel[seq[step]] = cur_j
+            cur_j = dp_prev[step][cur_j]
+        return best_tot, sel
+
+    best_seq = nn_order
+    best_cost, best_sel = _optimize_entries(best_seq)
+    n = len(best_seq)
+    improved = True
+    while improved:
+        improved = False
+        for i in range(n - 1):
+            for k in range(i + 1, n):
+                cand = best_seq[:i] + list(reversed(best_seq[i : k + 1])) + best_seq[k + 1 :]
+                c_val, c_sel = _optimize_entries(cand)
+                if c_val + 1e-6 < best_cost:
+                    best_seq = cand
+                    best_cost = c_val
+                    best_sel = c_sel
+                    improved = True
+    return best_seq, best_sel
+
+
 def plan_precedence_cnc_toolpath(case: dict[str, Any], result: dict[str, Any]) -> dict[str, Any]:
-    """Plan precedence-constrained CNC waterjet cutting sequence and scrap-zone pierce points."""
+    """Plan precedence-constrained CNC waterjet cutting sequence with neighbor-safe scrap pierces & GTSP 2-opt."""
     board = case["board"]
     w, h = float(board["width"]), float(board["height"])
     kerf = float(case.get("constraints", {}).get("kerf", 3.0))
-    lead_in_mm = max(2.5, kerf * 0.9)
+    lead_in_mm = max(2.2, kerf * 0.85)
+
+    obstacle_shps: list[ShapelyPolygon] = []
+    for obs in board.get("obstacles", []):
+        pts = [(float(p[0]), float(p[1])) for p in obs.get("polygon", [])]
+        if len(pts) >= 3:
+            os = ShapelyPolygon(pts)
+            obstacle_shps.append(os if os.is_valid else os.buffer(0))
+
+    placed = result.get("placements", [])
+    all_part_shps: list[tuple[int, ShapelyPolygon, ShapelyPolygon | None]] = []
+    for idx, p in enumerate(placed):
+        outer_pts = [(float(pt[0]), float(pt[1])) for pt in p.get("polygon", [])]
+        if len(outer_pts) < 3:
+            continue
+        shp = ShapelyPolygon(outer_pts)
+        if not shp.is_valid:
+            shp = shp.buffer(0)
+        h_pts = p.get("hole_polygon")
+        h_shp = ShapelyPolygon([(float(pt[0]), float(pt[1])) for pt in h_pts]) if (h_pts and len(h_pts) >= 3) else None
+        all_part_shps.append((idx, shp, h_shp))
 
     contours: list[dict[str, Any]] = []
-    placed = result.get("placements", [])
-
     for idx, p in enumerate(placed):
         outer_pts = [(float(pt[0]), float(pt[1])) for pt in p.get("polygon", [])]
         if len(outer_pts) < 3:
@@ -100,24 +364,19 @@ def plan_precedence_cnc_toolpath(case: dict[str, Any], result: dict[str, Any]) -
         is_pip = p.get("nested_inside") is not None
         tier = 1 if is_pip else 3
 
-        # Choose entry vertex closest to bottom-left corner of part and compute outward scrap pierce lead-in
-        v0 = min(outer_pts, key=lambda xy: (xy[0] + xy[1]))
-        shp = ShapelyPolygon(outer_pts)
-        c_pt = shp.centroid
-        dx, dy = v0[0] - c_pt.x, v0[1] - c_pt.y
-        norm = max(1e-6, math.hypot(dx, dy))
-        px = min(w - 1.0, max(1.0, v0[0] + lead_in_mm * (dx / norm)))
-        py = min(h - 1.0, max(1.0, v0[1] + lead_in_mm * (dy / norm)))
-        pierce_in_scrap = not shp.contains(ShapelyPoint(px, py))
-
+        cands = _find_safe_pierce_candidates(
+            outer_pts, idx, all_part_shps, obstacle_shps, w, h, lead_in_mm, is_inner_hole=False
+        )
+        v0, p0, safe0 = cands[0]
         contours.append(
             {
                 "part_index": idx,
                 "contour_type": "pip_child" if is_pip else "outer",
                 "tier": tier,
                 "entry_xy": v0,
-                "pierce_xy": (px, py),
-                "pierce_in_scrap": pierce_in_scrap,
+                "pierce_xy": p0,
+                "pierce_in_scrap": safe0,
+                "pierce_candidates": cands,
                 "perimeter_mm": _poly_perimeter(outer_pts),
             }
         )
@@ -125,22 +384,19 @@ def plan_precedence_cnc_toolpath(case: dict[str, Any], result: dict[str, Any]) -
         hole_pts = p.get("hole_polygon")
         if hole_pts and len(hole_pts) >= 3:
             h_coords = [(float(pt[0]), float(pt[1])) for pt in hole_pts]
-            h_shp = ShapelyPolygon(h_coords)
-            hv0 = min(h_coords, key=lambda xy: (xy[0] + xy[1]))
-            hc = h_shp.centroid
-            # For an interior sink hole, the interior of the hole IS scrap! Pierce inward toward hole center.
-            hdx, hdy = hc.x - hv0[0], hc.y - hv0[1]
-            hnorm = max(1e-6, math.hypot(hdx, hdy))
-            hpx = hv0[0] + lead_in_mm * (hdx / hnorm)
-            hpy = hv0[1] + lead_in_mm * (hdy / hnorm)
+            h_cands = _find_safe_pierce_candidates(
+                h_coords, idx, all_part_shps, obstacle_shps, w, h, lead_in_mm, is_inner_hole=True
+            )
+            hv0, hp0, hsafe0 = h_cands[0]
             contours.append(
                 {
                     "part_index": idx,
                     "contour_type": "inner_hole",
                     "tier": 2,
                     "entry_xy": hv0,
-                    "pierce_xy": (hpx, hpy),
-                    "pierce_in_scrap": True,
+                    "pierce_xy": hp0,
+                    "pierce_in_scrap": hsafe0,
+                    "pierce_candidates": h_cands,
                     "perimeter_mm": _poly_perimeter(h_coords),
                 }
             )
@@ -156,11 +412,10 @@ def plan_precedence_cnc_toolpath(case: dict[str, Any], result: dict[str, Any]) -
             "safe_scrap_pierce_pct": 100.0,
         }
 
-    pierce_pts = [c["pierce_xy"] for c in contours]
+    pierce_pts_naive = [c["pierce_xy"] for c in contours]
     naive_order = list(range(len(contours)))
-    naive_air_mm = _tour_air_length(pierce_pts, naive_order)
+    naive_air_mm = _tour_air_length(pierce_pts_naive, naive_order)
 
-    # Count precedence violations in naive index order (e.g. outer cut before inner hole or before PiP child)
     naive_viol = 0
     seen_outer_parts: set[int] = set()
     for ci in naive_order:
@@ -172,17 +427,23 @@ def plan_precedence_cnc_toolpath(case: dict[str, Any], result: dict[str, Any]) -
         elif c["contour_type"] == "pip_child" and len(seen_outer_parts) > 0:
             naive_viol += 1
 
-    # Precedence-constrained 2-opt tour: Tier 1 (PiP child) -> Tier 2 (Inner Hole) -> Tier 3 (Outer Contour)
+    # Precedence-constrained GTSP 2-opt tour: Tier 1 (PiP child) -> Tier 2 (Inner Hole) -> Tier 3 (Outer Contour)
     opt_order: list[int] = []
     cur_xy = (0.0, 0.0)
     for tier_id in (1, 2, 3):
         t_indices = [i for i, c in enumerate(contours) if c["tier"] == tier_id]
         if t_indices:
-            t_seq = _two_opt_tier_order(pierce_pts, t_indices, cur_xy)
+            t_seq, t_sel = _gtsp_two_opt_tier(contours, t_indices, cur_xy)
+            for idx_c in t_seq:
+                e_xy, p_xy, s_ok = contours[idx_c]["pierce_candidates"][t_sel[idx_c]]
+                contours[idx_c]["entry_xy"] = e_xy
+                contours[idx_c]["pierce_xy"] = p_xy
+                contours[idx_c]["pierce_in_scrap"] = s_ok
             opt_order.extend(t_seq)
-            cur_xy = pierce_pts[t_seq[-1]]
+            cur_xy = contours[t_seq[-1]]["pierce_xy"]
 
-    opt_air_mm = _tour_air_length(pierce_pts, opt_order)
+    pierce_pts_opt = [c["pierce_xy"] for c in contours]
+    opt_air_mm = _tour_air_length(pierce_pts_opt, opt_order)
     red_pct = (naive_air_mm - opt_air_mm) / max(1.0, naive_air_mm) * 100.0
     safe_pct = sum(1 for c in contours if c["pierce_in_scrap"]) / len(contours) * 100.0
 
@@ -276,10 +537,10 @@ def export_industrial_dxf(
             dxfattribs={"layer": "GOLDEN_VEIN_ZONE", "height": 22.0, "insert": (gx0 + 15.0, gy1 - 30.0)},
         )
 
-    # 4. Placed cut parts, tier-specific CAM layers, bridge-saw straight cuts, inner sink holes, and kerf envelopes
+    # 4. Placed cut parts, tier-specific CAM layers, merged bridge-saw straight cuts, inner sink holes, and kerf envelopes
     total_cut_mm = 0.0
     pierce_count = 0
-    bridge_saw_segments = 0
+    raw_bridge_segments: list[tuple[tuple[float, float], tuple[float, float]]] = []
 
     for idx, p in enumerate(result.get("placements", []), start=1):
         outer_pts = [(float(pt[0]), float(pt[1])) for pt in p.get("polygon", [])]
@@ -295,13 +556,12 @@ def export_industrial_dxf(
         elif p_tier == 3 or p.get("role") == "remnant_mosaic_fill":
             msp.add_lwpolyline(outer_pts, close=True, dxfattribs={"layer": "TIER3_MOSAIC_REMNANTS"})
 
-        # Export orthogonal/straight-line edges of Tier-1 & Tier-2 rectangles/squares onto BRIDGE_SAW_STRAIGHT_CUTS
+        # Collect orthogonal/straight-line edges of Tier-1 & Tier-2 rectangles/squares for common-line merging
         if p_tier in (1, 2) and len(outer_pts) == 4:
             for e_i in range(4):
                 p_a = outer_pts[e_i]
                 p_b = outer_pts[(e_i + 1) % 4]
-                msp.add_line(p_a, p_b, dxfattribs={"layer": "BRIDGE_SAW_STRAIGHT_CUTS"})
-                bridge_saw_segments += 1
+                raw_bridge_segments.append((p_a, p_b))
 
         total_cut_mm += _poly_perimeter(outer_pts)
         pierce_count += 1
@@ -332,6 +592,14 @@ def export_industrial_dxf(
             label,
             dxfattribs={"layer": "PART_ANNOTATIONS", "height": 24.0, "insert": (pcx - 60.0, pcy)},
         )
+
+    # Merge collinear adjacent/common-line bridge-saw passes before writing BRIDGE_SAW_STRAIGHT_CUTS
+    merged_bridge_segs, raw_bridge_m, merged_bridge_m = _merge_collinear_bridge_saw_cuts(
+        raw_bridge_segments, offset_tol_mm=max(3.5, kerf + 1.2)
+    )
+    for p_a, p_b in merged_bridge_segs:
+        msp.add_line(p_a, p_b, dxfattribs={"layer": "BRIDGE_SAW_STRAIGHT_CUTS"})
+    bridge_saw_segments = len(merged_bridge_segs)
 
     # 5. Precedence-Constrained CNC Rapid Toolpath & Pierce Lead-Ins
     cam_plan = plan_precedence_cnc_toolpath(case, result)
@@ -364,6 +632,9 @@ def export_industrial_dxf(
         "placed_parts_exported": len(result.get("placements", [])),
         "pierce_count": pierce_count,
         "total_cut_length_m": round(total_cut_m, 3),
+        "raw_bridge_saw_segments": len(raw_bridge_segments),
+        "merged_bridge_saw_segments": bridge_saw_segments,
+        "bridge_common_line_saved_m": round(max(0.0, raw_bridge_m - merged_bridge_m), 3),
         "naive_air_travel_m": cam_plan["naive_air_travel_m"],
         "optimized_air_travel_m": cam_plan["optimized_air_travel_m"],
         "air_travel_reduction_pct": cam_plan["air_travel_reduction_pct"],

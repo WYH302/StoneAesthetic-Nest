@@ -5,10 +5,10 @@ Directly invokes unmodified official C++ and Rust binaries compiled from upstrea
      - Native Windows x64 release binary: `third_party/packingsolver-windows-x64/.../packingsolver_irregular.exe`
      - Natively supports fixed irregular knapsack bins, polygon defects, and exact item-item kerf spacing.
   2. Official Rust `jagua-rs` (`lbf`, Gardeyn et al., 2025)
-     - Compiled from `third_party/jagua-rs` (Rust 1.100.0 `--release`) in Linux / WSL2
+     - Compiled from `third_party/jagua-rs` (Rust 1.100.0 `--release`) in OCCAM-Ubuntu WSL
      - Natively supports fixed bin packing (`bpp`) with polygon `"inner"` crack holes (defects).
   3. Official Rust `Sparrow v0.3.0` (Gardeyn & Wauters, 2025)
-     - Compiled from `third_party/sparrow` (Rust 1.100.0 `--release`, `opt-level=3`, `lto=fat`) in Linux / WSL2
+     - Compiled from `third_party/sparrow` (Rust 1.100.0 `--release`, `opt-level=3`, `lto=fat`) in OCCAM-Ubuntu WSL
      - Runs unmodified 2025 SOTA strip packing over kerf-buffered polygons, then maps valid slab-contained
        and crack-free placements (checking both direct and horizontally mirrored strip alignments).
 """
@@ -16,7 +16,6 @@ Directly invokes unmodified official C++ and Rust binaries compiled from upstrea
 from __future__ import annotations
 
 import json
-import os
 import math
 import subprocess
 import tempfile
@@ -47,9 +46,9 @@ PACKINGSOLVER_EXE = (
     / "packingsolver-windows-x64"
     / "packingsolver_irregular.exe"
 )
-WSL_DISTRO = os.environ.get("STONE_WSL_DISTRO", "Ubuntu")
-WSL_JAGUA_BIN = os.environ.get("JAGUA_LBF_BIN", "/usr/local/bin/jagua_lbf")
-WSL_SPARROW_BIN = os.environ.get("SPARROW_BIN", "/usr/local/bin/sparrow")
+WSL_DISTRO = "OCCAM-Ubuntu"
+WSL_JAGUA_BIN = "/root/native_solvers/jagua_lbf"
+WSL_SPARROW_BIN = "/root/native_solvers/sparrow"
 WSL_WORK_WIN = WORKSPACE_ROOT / "third_party" / "_native_runs"
 WSL_WORK_WIN.mkdir(parents=True, exist_ok=True)
 SPACING_EPS = 0.08

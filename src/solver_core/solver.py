@@ -14,6 +14,7 @@ from shapely.geometry import Polygon as ShapelyPolygon
 from ..vision.vision_parser import evaluate_placement_texture_cost
 from .geometry_kernel import (
     PolygonCoords,
+    SpatialCollisionIndex,
     bbox,
     check_placement_feasible,
     expand_case_items,
@@ -209,6 +210,7 @@ def _run_single_pass(
 ) -> dict[str, Any]:
     placed_records: list[dict[str, Any]] = []
     placements: list[dict[str, Any]] = []
+    spatial_idx = SpatialCollisionIndex(obstacle_shps)
     total_tex_penalty = 0.0
     use_def_tangents = (scoring_mode == "mlp") if include_defect_tangents is None else bool(include_defect_tangents)
 
@@ -245,6 +247,7 @@ def _run_single_pass(
                     kerf=kerf,
                     obstacle_clearance=0.0,
                     cut_mode=cut_mode,
+                    spatial_index=spatial_idx,
                 )
                 if not feasible:
                     continue
@@ -319,16 +322,16 @@ def _run_single_pass(
                 shp_outer = shp_outer.buffer(0)
             shp_hole = ShapelyPolygon(hole_world) if hole_world else None
 
-            placed_records.append(
-                {
-                    "item_instance_id": item["item_instance_id"],
-                    "shapely_outer": shp_outer,
-                    "shapely_hole": shp_hole,
-                    "hole_polygon_world": hole_world,
-                    "bbox": bbox(poly_world),
-                    "area": float(item["area"]),
-                }
-            )
+            rec_d = {
+                "item_instance_id": item["item_instance_id"],
+                "shapely_outer": shp_outer,
+                "shapely_hole": shp_hole,
+                "hole_polygon_world": hole_world,
+                "bbox": bbox(poly_world),
+                "area": float(item["area"]),
+            }
+            placed_records.append(rec_d)
+            spatial_idx.add_placed(rec_d, kerf)
             total_tex_penalty += float(tex_info["total_texture_penalty"])
             placements.append(
                 {

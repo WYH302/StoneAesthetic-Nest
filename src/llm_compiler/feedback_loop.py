@@ -13,9 +13,19 @@ from typing import Any
 
 from shapely.geometry import Polygon as ShapelyPolygon
 
+from ..solver_core.aesthetic_engine import solve_aesthetic_stone_nesting
 from ..solver_core.geometry_kernel import expand_case_items
 from ..solver_core.solver import solve_cf_slabnest
 from ..solver_core.validator import validate_nesting_solution
+
+
+def _dispatch_trial_solve(mod_case: dict[str, Any], time_limit_sec: float) -> dict[str, Any]:
+    if mod_case.get("is_aesthetic_multi_tier", False) or any(
+        it.get("role") in ("core_vein_match", "stair_tread_tandem", "remnant_mosaic_fill")
+        for it in mod_case.get("items", [])
+    ):
+        return solve_aesthetic_stone_nesting(mod_case, seed=42)
+    return solve_cf_slabnest(mod_case, time_limit_sec=time_limit_sec, seed=42)
 
 
 def diagnose_and_suggest_relaxations(
@@ -103,88 +113,48 @@ def diagnose_and_suggest_relaxations(
                 }
             )
 
-    # Generate & Counterfactually Verify Candidate Relaxations
+    # Generate & Counterfactually Verify Industrial Factory-Safe Minimal-Cost Relaxations
+    # (Replaces physically unrealistic 16-24% global part shrinking with real Yunfu shop-floor actions)
     candidates: list[tuple[str, str, str, dict[str, Any]]] = []
+    unplaced_type_ids = {by_id[uid]["type_id"] for uid in unplaced_ids if uid in by_id}
 
-    # Candidate A: Unlock grain rotation / allow +/- 15 deg or 90 deg rotation + reduce kerf/margin
+    # Option A: Targeted micro-angle tolerance (+/-5 deg -> +/-15 deg) on blocked non-Tier-1 items + waterjet kerf 2.0mm
     case_a = deepcopy(case)
     case_a["constraints"]["kerf"] = min(float(case["constraints"].get("kerf", 3.0)), 2.0)
     case_a["constraints"]["min_board_distance"] = min(float(case["constraints"].get("min_board_distance", 5.0)), 3.0)
-    case_a["constraints"]["rotation_step"] = 45.0
+    case_a["constraints"]["grain_tolerance_deg"] = 6.0
     for it in case_a["items"]:
-        it["grain_locked"] = False
-        it["allow_rotation"] = True
+        is_tier1 = int(it.get("tier", 3)) == 1 or it.get("role") == "core_vein_match"
+        if not is_tier1 and (it.get("id") in unplaced_type_ids or not unplaced_type_ids):
+            it["grain_tolerance_deg"] = 15.0
+            it["allow_rotation"] = True
     candidates.append(
         (
-            "relax_grain_and_kerf",
-            "方案A（推荐）：解除次要件顺纹死锁（允许45°/90°旋转避障）并将水刀刀缝优化至 2.0mm、边距缩至 3.0mm",
-            "Option A: Relax strict grain lock (allow 45/90-deg rotation) and tighten waterjet kerf to 2.0mm, margin to 3.0mm",
+            "targeted_angle_tol_and_kerf",
+            "方案A（零尺寸妥协·首选）：锁定核心主件连纹，仅对受阻次要件放宽纹理角度容差至 ±15° 并启用 2.0mm 精细水刀刀缝与 3.0mm 留边",
+            "Option A (Zero-Dimension-Loss): Preserve Tier-1 core aesthetics, relax grain tolerance (+/-15 deg) on blocked secondary items, and tighten waterjet kerf to 2.0mm",
             case_a,
         )
     )
 
-    # Candidate B: Minor dimensional trim (6% trim on non-critical dimensions) + kerf tightening
-    case_b = deepcopy(case)
-    case_b["constraints"]["kerf"] = min(float(case["constraints"].get("kerf", 3.0)), 2.0)
-    case_b["constraints"]["min_board_distance"] = 3.0
+    # Option B: Orthogonal rotation unlock on non-Tier-1 parts + realistic <=2% polishing/chamfer edge trim
+    case_b = deepcopy(case_a)
     case_b["constraints"]["cut_mode"] = "waterjet"
+    case_b["constraints"]["rotation_step"] = 45.0
     for it in case_b["items"]:
-        it["grain_locked"] = False
-        it["allow_rotation"] = True
-        for dim_k in ("width", "height", "size", "radius", "rx", "ry", "leg_width", "leg_height", "hole_width", "hole_height"):
-            if dim_k in it:
-                it[dim_k] = round(float(it[dim_k]) * 0.92, 1)
+        is_tier1 = int(it.get("tier", 3)) == 1 or it.get("role") == "core_vein_match"
+        if not is_tier1:
+            it["grain_locked"] = False
+            it["allow_rotation"] = True
+            for dim_k in ("width", "height", "size", "radius", "rx", "ry"):
+                if dim_k in it:
+                    it[dim_k] = round(float(it[dim_k]) * 0.98, 1)
     candidates.append(
         (
-            "minor_dimension_trim_8pct",
-            "方案B：在方案A基础上切换水刀模式并对受阻零件尺寸做 8% 工艺修边微调（适配现场切边余量）",
-            "Option B: Switch to waterjet mode and apply an 8% dimensional trim allowance on blocked parts",
+            "secondary_unlock_and_2pct_chamfer",
+            "方案B（2% 工艺修边微调）：解除次要件顺纹死锁并对非核心件启用 ≤2% 现场磨边/倒角工艺余量微调（零主件尺寸妥协）",
+            "Option B (<=2% Shop-Floor Edge Trim): Unlock secondary grain lock and apply <=2% chamfer/polishing allowance on non-core items",
             case_b,
-        )
-    )
-
-    # Candidate C: Stronger dimensional trim (15%) if slab is heavily over-constrained
-    case_c = deepcopy(case)
-    case_c["constraints"]["kerf"] = 1.5
-    case_c["constraints"]["min_board_distance"] = 2.0
-    case_c["constraints"]["rotation_step"] = 30.0
-    case_c["constraints"]["cut_mode"] = "waterjet"
-    case_c["constraints"]["grid_step"] = 28.0
-    for it in case_c["items"]:
-        it["grain_locked"] = False
-        it["allow_rotation"] = True
-        for dim_k in ("width", "height", "size", "radius", "rx", "ry", "leg_width", "leg_height", "hole_width", "hole_height"):
-            if dim_k in it:
-                it[dim_k] = round(float(it[dim_k]) * 0.84, 1)
-    candidates.append(
-        (
-            "adaptive_resize_16pct",
-            "方案C：切换超细水刀模式（刀缝1.5mm）并下调次要规格 16%，提升单板排入件数",
-            "Option C: Switch to ultra-fine 1.5mm waterjet kerf with 16% specification scaling",
-            case_c,
-        )
-    )
-
-    # Candidate D: Compact modular scaling (24%) for small 2400x1200 slabs with multiple cracks
-    case_d = deepcopy(case)
-    case_d["constraints"]["kerf"] = 1.5
-    case_d["constraints"]["min_board_distance"] = 2.0
-    case_d["constraints"]["rotation_step"] = 30.0
-    case_d["constraints"]["cut_mode"] = "waterjet"
-    case_d["constraints"]["grid_step"] = 25.0
-    for it in case_d["items"]:
-        it["grain_locked"] = False
-        it["allow_rotation"] = True
-        scale = 0.82 if int(it.get("priority", 1)) >= 3 else 0.74
-        for dim_k in ("width", "height", "size", "radius", "rx", "ry", "leg_width", "leg_height", "hole_width", "hole_height"):
-            if dim_k in it:
-                it[dim_k] = round(float(it[dim_k]) * scale, 1)
-    candidates.append(
-        (
-            "compact_modular_scaling",
-            "方案D：针对小幅面多裂纹荒料，启用紧凑模数缩放（主件82%/副件74%）实现单板兜底排入",
-            "Option D: Compact modular scaling (82% primary / 74% secondary) for single-slab fulfillment",
-            case_d,
         )
     )
 
@@ -192,7 +162,7 @@ def diagnose_and_suggest_relaxations(
     base_placed = int(result.get("placed_count", 0))
 
     for r_id, desc_cn, desc_en, mod_case in candidates:
-        trial_res = solve_cf_slabnest(mod_case, time_limit_sec=time_limit_per_trial, seed=42)
+        trial_res = _dispatch_trial_solve(mod_case, time_limit_sec=time_limit_per_trial)
         val_check = validate_nesting_solution(mod_case, trial_res)
         if val_check["feasible"] and int(trial_res["placed_count"]) > base_placed:
             verified_relaxations.append(
@@ -212,6 +182,53 @@ def diagnose_and_suggest_relaxations(
             )
             if len(trial_res["unplaced"]) == 0:
                 break
+
+    # Option C (Always verified when single-slab still overflows): Exact Minimal Multi-Slab Spillover (0% dimensional distortion!)
+    if not any(r["resolves_all"] for r in verified_relaxations):
+        spill_counts: dict[str, int] = {}
+        for uid in unplaced_ids:
+            meta = by_id.get(uid)
+            if meta is not None:
+                tid = str(meta["type_id"])
+                spill_counts[tid] = spill_counts.get(tid, 0) + 1
+        slab2_case = deepcopy(case)
+        slab2_case["case_id"] = f"{case.get('case_id', 'slab')}_spillover_slab2"
+        # Clean stock remnant slab #2 of matching width/height without Slab #1's cracks
+        slab2_case["board"]["obstacles"] = []
+        spill_items = []
+        for it in case.get("items", []):
+            cnt = spill_counts.get(str(it.get("id", "")), 0)
+            if cnt > 0:
+                it_cp = deepcopy(it)
+                it_cp["quantity"] = cnt
+                spill_items.append(it_cp)
+        slab2_case["items"] = spill_items
+        if spill_items:
+            res_s2 = _dispatch_trial_solve(slab2_case, time_limit_sec=time_limit_per_trial)
+            val_s2 = validate_nesting_solution(slab2_case, res_s2)
+            if val_s2["feasible"] and len(res_s2.get("unplaced", [])) == 0:
+                verified_relaxations.append(
+                    {
+                        "relaxation_id": "multi_slab_spillover_zero_distortion",
+                        "description_cn": (
+                            f"方案C（零尺寸妥协·自动分板）：保留主板 {base_placed} 件全部工艺与尺寸，"
+                            f"将受裂纹阻挡的 {len(unplaced_ids)} 件冲突零件自动拆单至第 2 张库存余料板（100% 校验通过）"
+                        ),
+                        "description_en": (
+                            f"Option C (Zero-Distortion Multi-Slab Spillover): Preserve all {base_placed} items on Slab #1 "
+                            f"and dispatch exactly {len(unplaced_ids)} blocked items onto Slab #2 (100% RAC verified)"
+                        ),
+                        "new_placed_count": base_placed + int(res_s2["placed_count"]),
+                        "total_count": int(result["total_count"]),
+                        "count_gain": int(res_s2["placed_count"]),
+                        "new_utilization": float(result.get("utilization", 0.0)),
+                        "slab2_utilization": float(res_s2["utilization"]),
+                        "resolves_all": True,
+                        "validator_feasible": True,
+                        "relaxed_case": slab2_case,
+                        "relaxed_result": res_s2,
+                    }
+                )
 
     best_suggestion_cn = (
         f"【几何冲突诊断】当前订单共 {result['total_count']} 件，已排入 {base_placed} 件，"

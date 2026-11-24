@@ -50,11 +50,47 @@ def parse_cn_int(token: str | None, default: int = 1) -> int:
 
 
 def _has_grain_lock(clause: str, global_default: bool = False) -> bool:
-    if any(k in clause for k in ("不限纹", "不限方向", "自由旋转", "任意角度", "可旋转", "不用顺纹")):
+    if any(k in clause for k in ("不限纹", "不限方向", "自由旋转", "任意角度", "可旋转", "不用顺纹", "不要顺纹", "不用对纹", "不对纹", "无需顺纹")):
         return False
     if any(k in clause for k in ("顺纹", "对纹", "追纹", "锁纹理", "按纹理", "同纹")):
         return True
     return global_default
+
+
+def _preprocess_colloquial_chinese(text: str) -> str:
+    """Normalize colloquial Yunfu workshop shorthand into canonical metric expressions before AST parsing."""
+    s = text.strip()
+    # Colloquial dimension idioms: 半米见方 -> 500x500mm 正方形; 一米二 -> 1200mm; 一米五 -> 1500mm
+    s = re.sub(r"半米见方", "50x50厘米正方形", s)
+    s = re.sub(r"一米([一二三四五六七八九])", lambda m: f"{1000 + CN_NUMS[m.group(1)] * 100}mm", s)
+    s = re.sub(r"两米([一二三四五六七八九])", lambda m: f"{2000 + CN_NUMS[m.group(1)] * 100}mm", s)
+    s = re.sub(r"(\d+(?:\.\d+)?)\s*米见方", lambda m: f"{round(float(m.group(1)) * 1000.0):.0f}x{round(float(m.group(1)) * 1000.0):.0f}mm正方形", s)
+    s = re.sub(r"常规水刀(?:留缝)?", "水刀，锯缝留3mm", s)
+    return s
+
+
+def validate_order_schema(order_state: dict[str, Any]) -> tuple[bool, list[str]]:
+    """Formally validate a compiled order schema before dispatching to the geometric solver."""
+    errors: list[str] = []
+    items = order_state.get("items", [])
+    if not items:
+        errors.append("empty_items")
+    for idx, it in enumerate(items):
+        qty = int(it.get("quantity", 0))
+        if qty < 1 or qty > 400:
+            errors.append(f"invalid_quantity_at_{idx}:{qty}")
+        for dk in ("width", "height", "size", "radius", "side"):
+            if dk in it and (float(it[dk]) < 20.0 or float(it[dk]) > 3500.0):
+                errors.append(f"out_of_range_{dk}_at_{idx}:{it[dk]}")
+        if it.get("shape") == "hollow_countertop":
+            if float(it.get("hole_width", 0.0)) >= float(it.get("width", 1.0)) - 20.0:
+                errors.append(f"invalid_hole_width_at_{idx}")
+            if float(it.get("hole_height", 0.0)) >= float(it.get("height", 1.0)) - 20.0:
+                errors.append(f"invalid_hole_height_at_{idx}")
+    c = order_state.get("constraints", {})
+    if float(c.get("kerf", 3.0)) < 0.5 or float(c.get("kerf", 3.0)) > 20.0:
+        errors.append("invalid_kerf")
+    return len(errors) == 0, errors
 
 
 def _unit_scale_mm(unit_str: str | None) -> float:
@@ -86,15 +122,16 @@ def _infer_vein_grid(qty: int, clause: str = "") -> list[int]:
     return [1, max(1, qty)]
 
 
-def compile_chinese_order(text: str) -> dict[str, Any]:
+def compile_chinese_order(text: str, *, dynamic_remnant_cap: bool = False) -> dict[str, Any]:
     """Compile a colloquial Chinese stone order into a validated 3-Tier aesthetic & geometric schema."""
     raw = text.strip()
+    pre = _preprocess_colloquial_chinese(raw)
     # Keep modifiers inside parentheses together with their parent item clause
     def _clean_parens(m: re.Match[str]) -> str:
         inner = m.group(1).replace("，", " ").replace(",", " ").replace("、", " ").replace("；", " ")
         return f"({inner})"
 
-    grouped = re.sub(r"[（(]([^）)]*)[）)]", _clean_parens, raw)
+    grouped = re.sub(r"[（(]([^）)]*)[）)]", _clean_parens, pre)
     norm = (
         grouped.replace("，", ",")
         .replace("；", ",")
@@ -374,14 +411,16 @@ def compile_chinese_order(text: str) -> dict[str, Any]:
             re.IGNORECASE,
         )
         if m_rect:
-            u_str = m_rect.group("uh") or m_rect.group("uw")
-            scale = _unit_scale_mm(u_str)
+            uw_s = m_rect.group("uw")
+            uh_s = m_rect.group("uh")
+            scale_w = _unit_scale_mm(uw_s or uh_s)
+            scale_h = _unit_scale_mm(uh_s or uw_s)
             raw_w = float(m_rect.group("w"))
             raw_h = float(m_rect.group("h"))
-            if scale == 1.0 and max(raw_w, raw_h) <= 180.0 and any(u in clause for u in ("厘米", "公分", "cm")):
-                scale = 10.0
-            w = round(raw_w * scale, 1)
-            h = round(raw_h * scale, 1)
+            if uw_s is None and uh_s is None and max(raw_w, raw_h) <= 180.0 and any(u in clause for u in ("厘米", "公分", "cm")):
+                scale_w = scale_h = 10.0
+            w = round(raw_w * scale_w, 1)
+            h = round(raw_h * scale_h, 1)
             qty = parse_cn_int(m_rect.group("q"))
             is_core_rect = any(
                 k in clause for k in ("核心件", "黄金主纹", "黄金带", "主纹带", "连纹对花", "四联屏", "双联", "双盆")
@@ -494,15 +533,25 @@ def compile_chinese_order(text: str) -> dict[str, Any]:
     has_multi_tier_aesthetic = any(
         it.get("role") in ("core_vein_match", "stair_tread_tandem", "remnant_mosaic_fill") for it in items
     )
+    bookmatch_requested = any(k in norm for k in ("对开", "蝴蝶对花", "双板镜像", "镜像对花", "bookmatch"))
+    if dynamic_remnant_cap:
+        # Dynamically size open-ended Tier-3 remnant quantity to slab fill capacity instead of fixed magic numbers
+        for it in items:
+            if it.get("fill_remnants", False):
+                est_area = max(4000.0, float(it.get("width", 180.0)) * float(it.get("height", 160.0)))
+                it["quantity"] = max(int(it.get("quantity", 30)), min(180, int(2_400_000.0 // est_area)))
+                it["fill_to_capacity"] = True
+
     warnings: list[str] = []
     if not items:
         warnings.append("未能从输入语句中解析出有效石材零件，请检查尺寸与形状描述。")
 
-    return {
+    out_schema = {
         "raw_text": raw,
         "items": items,
         "objective": "aesthetic_multi_tier_lexicographic" if has_multi_tier_aesthetic else "count_first_lexicographic",
         "is_aesthetic_multi_tier": has_multi_tier_aesthetic,
+        "bookmatch_requested": bookmatch_requested,
         "constraints": {
             "avoid_cracks": avoid_cracks,
             "kerf": kerf_mm,
@@ -510,9 +559,13 @@ def compile_chinese_order(text: str) -> dict[str, Any]:
             "rotation_step": 60.0 if any(it.get("shape") == "equilateral_triangle" for it in items) else 90.0,
             "cut_mode": cut_mode,
         },
-        "compiler_version": "StoneVL-AestheticCompiler-v2",
+        "compiler_version": "StoneVL-AestheticCompiler-v3",
         "warnings": warnings,
     }
+    ok_schema, schema_errs = validate_order_schema(out_schema)
+    out_schema["schema_valid"] = ok_schema
+    out_schema["schema_errors"] = schema_errs
+    return out_schema
 
 
 def compile_naive_baseline(text: str) -> dict[str, Any]:

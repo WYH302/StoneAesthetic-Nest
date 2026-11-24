@@ -1,0 +1,35 @@
+{
+  "_instructions": "Drop 3-5 real Yunfu stone factory photos (original quality) into ./photos/ and list each slab's physical width_mm and height_mm below. Leave corners_px as null to use automatic ArUco (IDs 0,1,2,3) or dual-polarity slab contour detection; or provide 4 [x, y] pixel points [TL, TR, BR, BL] for exact manual corners.",
+  "slabs": [
+    {
+      "case_id": "yunfu_real_01_calacatta",
+      "filename": "slab_01.jpg",
+      "stone_name": "Yunfu Calacatta White (鱼肚白)",
+      "width_mm": 3000.0,
+      "height_mm": 1800.0,
+      "corners_px": null,
+      "slab_price_rmb_m2": 780.0,
+      "order_text": null
+    },
+    {
+      "case_id": "yunfu_real_02_emerald_onyx",
+      "filename": "slab_02.jpg",
+      "stone_name": "Yunfu Emerald Onyx (翡翠青玉)",
+      "width_mm": 2800.0,
+      "height_mm": 1650.0,
+      "corners_px": null,
+      "slab_price_rmb_m2": 920.0,
+      "order_text": null
+    },
+    {
+      "case_id": "yunfu_real_03_travertine",
+      "filename": "slab_03.jpg",
+      "stone_name": "Yunfu Roman Travertine (罗马洞石)",
+      "width_mm": 2900.0,
+      "height_mm": 1700.0,
+      "corners_px": null,
+      "slab_price_rmb_m2": 620.0,
+      "order_text": null
+    }
+  ]
+}

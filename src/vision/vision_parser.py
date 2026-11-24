@@ -35,16 +35,39 @@ def _order_quad_corners(pts: np.ndarray) -> np.ndarray:
 
 
 def detect_slab_corners_auto(image_bgr: np.ndarray) -> list[list[float]]:
-    """Automatically detect 4 outer corners of a stone slab in a workshop photo."""
+    """Automatically detect 4 outer corners of a stone slab in a workshop photo.
+
+    Priority 1: Sub-millimeter ArUco 4-corner fiducial marker detection (works reliably
+                even for dark Nero Marquina / Emerald Onyx slabs on concrete workshop floors).
+    Priority 2: Dual-polarity adaptive contrast contour extraction (bright-on-dark or dark-on-light).
+    """
     h, w = image_bgr.shape[:2]
     gray = cv2.cvtColor(image_bgr, cv2.COLOR_BGR2GRAY)
+
+    # Priority 1: ArUco fiducial markers placed at the 4 slab corners (DICT_4X4_50)
+    if hasattr(cv2, "aruco"):
+        try:
+            aruco_dict = cv2.aruco.getPredefinedDictionary(cv2.aruco.DICT_4X4_50)
+            params = cv2.aruco.DetectorParameters()
+            detector = cv2.aruco.ArucoDetector(aruco_dict, params)
+            corners_list, ids, _ = detector.detectMarkers(gray)
+            if ids is not None and len(ids) >= 4:
+                centers = np.array([c[0].mean(axis=0) for c in corners_list[:4]], dtype=np.float32)
+                ordered = _order_quad_corners(centers)
+                return ordered.tolist()
+        except Exception:
+            pass
+
     blur = cv2.GaussianBlur(gray, (5, 5), 0)
-    # Check if background border exists (dark studio/workshop border around bright slab)
+    # Priority 2: Dual-polarity contrast check (handles both light marble on dark floor & dark onyx on light floor)
     border_vals = np.concatenate([blur[0, :], blur[-1, :], blur[:, 0], blur[:, -1]])
     center_vals = blur[h // 4 : 3 * h // 4, w // 4 : 3 * w // 4].ravel()
-    if float(np.median(center_vals)) - float(np.median(border_vals)) > 25.0:
-        thresh_val = 0.5 * (float(np.median(center_vals)) + float(np.median(border_vals)))
-        _, binary = cv2.threshold(blur, int(thresh_val), 255, cv2.THRESH_BINARY)
+    med_center = float(np.median(center_vals))
+    med_border = float(np.median(border_vals))
+    if abs(med_center - med_border) > 22.0:
+        thresh_val = 0.5 * (med_center + med_border)
+        thresh_flag = cv2.THRESH_BINARY if med_center > med_border else cv2.THRESH_BINARY_INV
+        _, binary = cv2.threshold(blur, int(thresh_val), 255, thresh_flag)
         kernel = cv2.getStructuringElement(cv2.MORPH_RECT, (9, 9))
         binary = cv2.morphologyEx(binary, cv2.MORPH_CLOSE, kernel)
         contours, _ = cv2.findContours(binary, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
@@ -112,17 +135,39 @@ def rectify_slab_perspective(
     }
 
 
+def _build_integral_2d(grid: np.ndarray) -> np.ndarray:
+    """Compute padded (ny+1, nx+1) float64 2D integral image for O(1) box-mean queries."""
+    ny, nx = grid.shape
+    integ = np.zeros((ny + 1, nx + 1), dtype=np.float64)
+    integ[1:, 1:] = np.cumsum(np.cumsum(grid.astype(np.float64), axis=0), axis=1)
+    return integ
+
+
+def query_integral_box_mean(integ: np.ndarray, ix0: int, iy0: int, ix1: int, iy1: int) -> float:
+    """Query exact mean over inclusive box [iy0..iy1, ix0..ix1] in O(1) time."""
+    ny = integ.shape[0] - 1
+    nx = integ.shape[1] - 1
+    x0 = max(0, min(nx - 1, ix0))
+    x1 = max(x0, min(nx - 1, ix1))
+    y0 = max(0, min(ny - 1, iy0))
+    y1 = max(y0, min(ny - 1, iy1))
+    s = integ[y1 + 1, x1 + 1] - integ[y0, x1 + 1] - integ[y1 + 1, x0] + integ[y0, x0]
+    cnt = (y1 - y0 + 1) * (x1 - x0 + 1)
+    return float(s / max(1, cnt))
+
+
 def analyze_texture_field(
     rectified_bgr: np.ndarray,
     defect_mask: np.ndarray | None = None,
-    grid_nx: int = 32,
-    grid_ny: int = 20,
+    grid_nx: int = 96,
+    grid_ny: int = 60,
 ) -> dict[str, Any]:
-    """Extract Dominant Vein Angle (theta_vein) and local Color Variance Map.
+    """Extract Dominant Vein Angle, Spatially-Varying Local Orientation Field theta(x,y),
+    CIE-LAB Color Variance Map, and O(1) Integral-Image Golden Vein Zone.
 
     Uses the 2D Structure Tensor J = G_sigma * (grad I * grad I^T) outside defect
-    regions to compute the principal stone vein orientation and coherence, plus
-    CIE-LAB local variance for chromatic blemish scoring.
+    regions to compute both global and local vein orientation/coherence fields, plus
+    9x finer (96x60) chromatic blemish and saliency maps.
     """
     gray = cv2.cvtColor(rectified_bgr, cv2.COLOR_BGR2GRAY).astype(np.float32)
     smooth = cv2.GaussianBlur(gray, (9, 9), 2.0)
@@ -162,23 +207,31 @@ def analyze_texture_field(
     denom = sum_jxx + sum_jyy + 1e-6
     coherence = math.sqrt((sum_jxx - sum_jyy) ** 2 + 4.0 * (sum_jxy**2)) / denom
 
-    # Compute local CIE-LAB color variance map on a grid_ny x grid_nx grid
-    lab = cv2.cvtColor(rectified_bgr, cv2.COLOR_BGR2LAB).astype(np.float32)
-    cost_grid = np.zeros((grid_ny, grid_nx), dtype=np.float32)
-    cell_h = max(1, h // grid_ny)
-    cell_w = max(1, w // grid_nx)
-    global_mean_ab = np.mean(lab[:, :, 1:3].reshape(-1, 2), axis=0)
+    # Spatially-varying Local Orientation Field theta(x, y) & Local Coherence C(x, y)
+    # Enables curved / swirling / multi-vein slabs (Calacatta / Panda White) to align locally
+    jxx_g = cv2.resize(j_xx, (grid_nx, grid_ny), interpolation=cv2.INTER_AREA)
+    jyy_g = cv2.resize(j_yy, (grid_nx, grid_ny), interpolation=cv2.INTER_AREA)
+    jxy_g = cv2.resize(j_xy, (grid_nx, grid_ny), interpolation=cv2.INTER_AREA)
+    local_grad_rad = 0.5 * np.arctan2(-2.0 * jxy_g, jxx_g - jyy_g)
+    local_vein_deg = (np.degrees(local_grad_rad) + 90.0) % 180.0
+    local_denom = jxx_g + jyy_g + 1e-6
+    local_coh = np.clip(np.sqrt((jxx_g - jyy_g) ** 2 + 4.0 * (jxy_g**2)) / local_denom, 0.0, 1.0)
 
-    for iy in range(grid_ny):
-        y0 = iy * cell_h
-        y1 = h if iy == grid_ny - 1 else (iy + 1) * cell_h
-        for ix in range(grid_nx):
-            x0 = ix * cell_w
-            x1 = w if ix == grid_nx - 1 else (ix + 1) * cell_w
-            patch = lab[y0:y1, x0:x1]
-            std_l = float(np.std(patch[:, :, 0]))
-            dev_ab = float(np.linalg.norm(np.mean(patch[:, :, 1:3], axis=(0, 1)) - global_mean_ab))
-            cost_grid[iy, ix] = 0.6 * std_l + 0.4 * dev_ab
+    # Vectorized CIE-LAB local color variance map on a grid_ny x grid_nx grid (fast & high-resolution)
+    lab = cv2.cvtColor(rectified_bgr, cv2.COLOR_BGR2LAB).astype(np.float32)
+    l_chan = lab[:, :, 0]
+    a_chan = lab[:, :, 1]
+    b_chan = lab[:, :, 2]
+    global_mean_a = float(np.mean(a_chan[valid]))
+    global_mean_b = float(np.mean(b_chan[valid]))
+
+    mean_l = cv2.resize(l_chan, (grid_nx, grid_ny), interpolation=cv2.INTER_AREA)
+    mean_l2 = cv2.resize(l_chan * l_chan, (grid_nx, grid_ny), interpolation=cv2.INTER_AREA)
+    std_l = np.sqrt(np.maximum(0.0, mean_l2 - mean_l * mean_l))
+    mean_a = cv2.resize(a_chan, (grid_nx, grid_ny), interpolation=cv2.INTER_AREA)
+    mean_b = cv2.resize(b_chan, (grid_nx, grid_ny), interpolation=cv2.INTER_AREA)
+    dev_ab = np.sqrt((mean_a - global_mean_a) ** 2 + (mean_b - global_mean_b) ** 2)
+    cost_grid = (0.6 * std_l + 0.4 * dev_ab).astype(np.float32)
 
     c_min = float(np.min(cost_grid))
     c_max = float(np.max(cost_grid))
@@ -188,7 +241,6 @@ def analyze_texture_field(
         cost_grid.fill(0.1)
 
     # Compute Aesthetic Energy / Saliency Map and Golden Vein Zone (黄金主纹带)
-    # Energy is highest where gradient magnitude (vein dynamics) and local structural coherence peak
     grad_mag = np.sqrt(gx * gx + gy * gy)
     smooth_energy = cv2.GaussianBlur(grad_mag, (31, 31), 8.0)
     if defect_mask is not None and defect_mask.shape == gray.shape:
@@ -200,18 +252,18 @@ def analyze_texture_field(
     # Downsample aesthetic energy to grid_ny x grid_nx
     energy_grid = cv2.resize(norm_energy, (grid_nx, grid_ny), interpolation=cv2.INTER_AREA)
 
-    # Identify Golden Vein Zone (prime 56% x 62% luxury corridor maximizing net aesthetic saliency minus blemish)
+    # O(1) Integral-Image Golden Vein Zone discovery (prime 56% x 62% luxury corridor)
     net_aes = energy_grid - 0.35 * cost_grid
+    net_integ = _build_integral_2d(net_aes)
     win_nx = max(4, int(round(0.56 * grid_nx)))
     win_ny = max(4, int(round(0.62 * grid_ny)))
     best_score = -1e9
     best_ix, best_iy = int(0.22 * grid_nx), int(0.19 * grid_ny)
-    # Interior margin preference (avoiding outer 6% slab rind)
     ix_lo, ix_hi = max(1, int(0.08 * grid_nx)), max(2, grid_nx - win_nx - int(0.06 * grid_nx))
     iy_lo, iy_hi = max(1, int(0.06 * grid_ny)), max(2, grid_ny - win_ny - int(0.06 * grid_ny))
     for iy in range(iy_lo, max(iy_lo + 1, iy_hi + 1)):
         for ix in range(ix_lo, max(ix_lo + 1, ix_hi + 1)):
-            sc = float(np.mean(net_aes[iy : iy + win_ny, ix : ix + win_nx]))
+            sc = query_integral_box_mean(net_integ, ix, iy, ix + win_nx - 1, iy + win_ny - 1)
             if sc > best_score:
                 best_score = sc
                 best_ix, best_iy = ix, iy
@@ -223,13 +275,23 @@ def analyze_texture_field(
         round(min(1.0, (best_iy + win_ny) / float(grid_ny)), 4),
     ]
 
+    # Measure vein curvature / anisotropy dispersion (std of local orientation weighted by coherence)
+    w_coh = local_coh + 1e-4
+    c2 = float(np.sum(w_coh * np.cos(2.0 * np.radians(local_vein_deg))) / np.sum(w_coh))
+    s2 = float(np.sum(w_coh * np.sin(2.0 * np.radians(local_vein_deg))) / np.sum(w_coh))
+    resultant_len = min(1.0, max(0.0, math.hypot(c2, s2)))
+    vein_curvature_index = round(1.0 - resultant_len, 4)
+
     return {
         "dominant_vein_angle_deg": round(vein_angle_deg, 2),
         "vein_coherence": round(float(min(1.0, max(0.0, coherence))), 4),
+        "vein_curvature_index": vein_curvature_index,
         "grid_nx": grid_nx,
         "grid_ny": grid_ny,
         "color_variance_map": np.round(cost_grid, 4).tolist(),
         "aesthetic_energy_map": np.round(energy_grid, 4).tolist(),
+        "local_vein_angle_map": np.round(local_vein_deg, 2).tolist(),
+        "local_coherence_map": np.round(local_coh, 4).tolist(),
         "golden_vein_zone_norm": golden_box_norm,
         "mean_color_variance": round(float(np.mean(cost_grid)), 4),
     }
@@ -297,7 +359,57 @@ def evaluate_seam_vein_matching_score(
     return round(float(np.clip(continuity_score, 0.0, 1.0)), 4)
 
 
-_CMAP_CACHE: dict[int, np.ndarray] = {}
+_CMAP_CACHE: dict[int, tuple[np.ndarray, np.ndarray]] = {}
+_LOCAL_ANGLE_CACHE: dict[int, tuple[np.ndarray, np.ndarray, np.ndarray]] = {}
+
+
+def sample_local_vein_angle_deg(
+    poly_mm: list[tuple[float, float]] | list[list[float]],
+    width_mm: float,
+    height_mm: float,
+    texture_field: dict[str, Any] | None,
+) -> float:
+    """Compute coherence-weighted local vein orientation (deg in [0, 180)) inside poly_mm.
+
+    Handles curved / swirling natural stone veins using the spatially-varying orientation
+    field theta(x, y); falls back to global dominant_vein_angle_deg if unavailable.
+    """
+    if not texture_field:
+        return 0.0
+    global_deg = float(texture_field.get("dominant_vein_angle_deg", 0.0))
+    if "local_vein_angle_map" not in texture_field:
+        return global_deg
+
+    tf_id = id(texture_field)
+    cached = _LOCAL_ANGLE_CACHE.get(tf_id)
+    if cached is None:
+        ang_rad = np.radians(np.asarray(texture_field["local_vein_angle_map"], dtype=np.float64))
+        coh = np.asarray(texture_field.get("local_coherence_map", np.ones_like(ang_rad)), dtype=np.float64) + 1e-4
+        int_c2 = _build_integral_2d(coh * np.cos(2.0 * ang_rad))
+        int_s2 = _build_integral_2d(coh * np.sin(2.0 * ang_rad))
+        int_w = _build_integral_2d(coh)
+        if len(_LOCAL_ANGLE_CACHE) > 256:
+            _LOCAL_ANGLE_CACHE.clear()
+        cached = (int_c2, int_s2, int_w)
+        _LOCAL_ANGLE_CACHE[tf_id] = cached
+
+    int_c2, int_s2, int_w = cached
+    ny, nx = int_c2.shape[0] - 1, int_c2.shape[1] - 1
+    xs = [p[0] for p in poly_mm]
+    ys = [p[1] for p in poly_mm]
+    ix0 = max(0, min(nx - 1, int((min(xs) / max(1.0, width_mm)) * nx)))
+    ix1 = max(0, min(nx - 1, int((max(xs) / max(1.0, width_mm)) * nx)))
+    # CAD Y is bottom-up, image grid row 0 is top (y = height_mm)
+    iy0 = max(0, min(ny - 1, int(((height_mm - max(ys)) / max(1.0, height_mm)) * ny)))
+    iy1 = max(0, min(ny - 1, int(((height_mm - min(ys)) / max(1.0, height_mm)) * ny)))
+    if iy1 < iy0:
+        iy0, iy1 = iy1, iy0
+    c2 = query_integral_box_mean(int_c2, ix0, iy0, ix1, iy1)
+    s2 = query_integral_box_mean(int_s2, ix0, iy0, ix1, iy1)
+    w_sum = query_integral_box_mean(int_w, ix0, iy0, ix1, iy1)
+    if w_sum <= 1e-6 or math.hypot(c2, s2) <= 1e-5:
+        return global_deg
+    return float((0.5 * math.degrees(math.atan2(s2, c2))) % 180.0)
 
 
 def evaluate_placement_texture_cost(
@@ -309,27 +421,36 @@ def evaluate_placement_texture_cost(
     grain_locked: bool = False,
     priority: int = 1,
 ) -> dict[str, float]:
-    """Compute coupled visual-geometric cost for placing a polygon at (poly_mm, rotation_deg)."""
+    """Compute coupled visual-geometric cost for placing a polygon at (poly_mm, rotation_deg).
+
+    Fixed Y-axis coordinate inversion (CAD bottom-up -> image top-down) and upgraded to
+    O(1) 2D Integral Image box-mean lookup.
+    """
     if not texture_field:
         return {"color_cost": 0.0, "vein_angle_error_deg": 0.0, "total_texture_penalty": 0.0}
 
     tf_id = id(texture_field)
-    cmap = _CMAP_CACHE.get(tf_id)
-    if cmap is None:
+    cached = _CMAP_CACHE.get(tf_id)
+    if cached is None:
         cmap = np.asarray(texture_field.get("color_variance_map", [[0.1]]), dtype=np.float32)
+        integ = _build_integral_2d(cmap)
         if len(_CMAP_CACHE) > 256:
             _CMAP_CACHE.clear()
-        _CMAP_CACHE[tf_id] = cmap
+        cached = (cmap, integ)
+        _CMAP_CACHE[tf_id] = cached
+    cmap, integ = cached
     ny, nx = cmap.shape
     xs = [p[0] for p in poly_mm]
     ys = [p[1] for p in poly_mm]
     ix0 = max(0, min(nx - 1, int((min(xs) / max(1.0, width_mm)) * nx)))
     ix1 = max(0, min(nx - 1, int((max(xs) / max(1.0, width_mm)) * nx)))
-    iy0 = max(0, min(ny - 1, int((min(ys) / max(1.0, height_mm)) * ny)))
-    iy1 = max(0, min(ny - 1, int((max(ys) / max(1.0, height_mm)) * ny)))
+    # Properly flip Y: image row 0 is top of slab (y_cad = height_mm)
+    iy0 = max(0, min(ny - 1, int(((height_mm - max(ys)) / max(1.0, height_mm)) * ny)))
+    iy1 = max(0, min(ny - 1, int(((height_mm - min(ys)) / max(1.0, height_mm)) * ny)))
+    if iy1 < iy0:
+        iy0, iy1 = iy1, iy0
 
-    sub = cmap[iy0 : iy1 + 1, ix0 : ix1 + 1]
-    mean_color_cost = float(np.mean(sub)) if sub.size > 0 else 0.1
+    mean_color_cost = query_integral_box_mean(integ, ix0, iy0, ix1, iy1)
 
     vein_deg = float(texture_field.get("dominant_vein_angle_deg", 0.0))
     # Periodicity of undirected stone vein line is 180 degrees
