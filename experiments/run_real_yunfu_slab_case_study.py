@@ -50,10 +50,12 @@ DEFAULT_PHOTOS_DIR = REAL_SLAB_DIR / "photos"
 DEFAULT_MANIFEST = REAL_SLAB_DIR / "slabs_manifest.json"
 DEFAULT_OUT_DIR = REAL_SLAB_DIR / "outputs"
 _CKPT_CANDIDATES = [
+    MASTER_DIR / "experiments" / "results" / "crackseg_cnx_sdm_fp16.pt",
+    MASTER_DIR / "checkpoints" / "crackseg_cnx_sdm_fp16.pt",
     MASTER_DIR / "experiments" / "results" / "crackseg_mv3_cldice.pt",
     MASTER_DIR / "checkpoints" / "crackseg_mv3_cldice.pt",
 ]
-DEFAULT_CRACK_CKPT = next((p for p in _CKPT_CANDIDATES if p.exists()), _CKPT_CANDIDATES[0])
+DEFAULT_CRACK_CKPT = next((p for p in _CKPT_CANDIDATES if p.exists()), _CKPT_CANDIDATES[-1])
 
 
 def _imread_unicode(path: Path) -> np.ndarray:
@@ -228,16 +230,39 @@ class _CrackSegMV3Inference:
                 up1 = F.interpolate(p2, size=(h, w), mode="bilinear", align_corners=False)
                 return self.head(self.refine_1x(torch.cat([up1, d1], dim=1)))
 
-        model = _OfflineMV3(fpn_c=64)
-        state = torch.load(ckpt_path, map_location="cpu", weights_only=True)
-        model.load_state_dict(state, strict=True)
-        model.to(self.device).eval()
-        self.model = model
+        if "cnx_sdm" in ckpt_path.name.lower():
+            from experiments.run_exp_e_crackseg_sdm_sota import CrackSegCNXSDM
+
+            base_m = CrackSegCNXSDM(fpn_c=64, pretrained=False)
+            state = torch.load(ckpt_path, map_location="cpu", weights_only=True)
+            base_m.load_state_dict({k: v.float() if v.is_floating_point() else v for k, v in state.items()}, strict=True)
+            base_m.to(self.device).eval()
+
+            class _CNXWrap(nn.Module):
+                def __init__(self, net: nn.Module) -> None:
+                    super().__init__()
+                    self.net = net
+
+                def forward(self, x: torch.Tensor) -> torch.Tensor:
+                    return self.net(x)[0]
+
+            self.model = _CNXWrap(base_m).to(self.device).eval()
+            self.in_hw = (512, 512)
+            self.model_label = "CrackSeg-CNX-SDM"
+        else:
+            model = _OfflineMV3(fpn_c=64)
+            state = torch.load(ckpt_path, map_location="cpu", weights_only=True)
+            model.load_state_dict(state, strict=True)
+            model.to(self.device).eval()
+            self.model = model
+            self.in_hw = (384, 512)
+            self.model_label = "CrackSeg-MV3-clDice"
+
         self.mean = np.array([0.485, 0.456, 0.406], dtype=np.float32)
         self.std = np.array([0.229, 0.224, 0.225], dtype=np.float32)
         # Warm up CUDA kernels once so reported per-slab latency reflects steady-state inference
         with self.torch.no_grad():
-            dummy = self.torch.zeros((1, 3, 384, 512), device=self.device)
+            dummy = self.torch.zeros((1, 3, self.in_hw[0], self.in_hw[1]), device=self.device)
             _ = self.model(dummy)
             if self.device.type == "cuda":
                 self.torch.cuda.synchronize()
@@ -251,7 +276,7 @@ class _CrackSegMV3Inference:
         """Run 4-view flip-TTA crack segmentation and return (binary_mask_u8, latency_ms)."""
         h0, w0 = rectified_bgr.shape[:2]
         rgb = cv2.cvtColor(rectified_bgr, cv2.COLOR_BGR2RGB)
-        rgb_rs = cv2.resize(rgb, (512, 384), interpolation=cv2.INTER_LINEAR)
+        rgb_rs = cv2.resize(rgb, (self.in_hw[1], self.in_hw[0]), interpolation=cv2.INTER_LINEAR)
         x_np = ((rgb_rs.astype(np.float32) / 255.0) - self.mean) / self.std
         x_t = self.torch.from_numpy(x_np.transpose(2, 0, 1)).unsqueeze(0).to(self.device)
 
@@ -482,7 +507,7 @@ def process_single_slab(
             threshold=crack_threshold,
             marker_exclusion_mask=marker_excl,
         )
-        crack_backend_used = f"CrackSeg-MV3-clDice (GPU {crack_latency_ms:.1f}ms)"
+        crack_backend_used = f"{gpu_segmenter.model_label} (GPU {crack_latency_ms:.1f}ms)"
 
     # Save cleaned rectified image so `run_commercial_pipeline` works directly on exact mm coordinates
     case_out_dir = out_dir / case_id

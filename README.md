@@ -101,9 +101,13 @@ Evaluated across `YunfuPoly-24` (`24` uncut `3000×1800 mm` CC0 marble, onyx, an
 | `GFPack++-Adapted` | 52.6% | 21.2% | 22.0° | 13.5 | 48.5% | 1,354 |
 | **StoneAesthetic-Nest (Ours)** | **87.7%** | **96.4%** | **0.0°** | **35.3** | **57.0%** | **3,759** |
 
-**Official `DeepCrack` (`300` train / `237` unseen test) Crack Segmentation (`RTX 3090` & `CPU`)**:
-- `Black-Hat Adaptive` (Ours, zero-GPU CPU): `0.00M` params, `17.8 ms` (`56.3 FPS`), `54.8%` FG-IoU, `67.5%` Strict F1.
-- `CrackSeg-MV3-clDice` (Ours, RTX 3090): `3.17M` params, **`5.27 ms` (`189.8 FPS`, `306.5 MiB` VRAM)** in FP16 + `torch.cuda.CUDAGraph` single-pass (`71.8%` FG-IoU, `85.9%` ODS F1, `0.00%` FP16 accuracy loss), or `18.4 ms` (`54.4 FPS`, `378 MiB` VRAM) FP32 eager (`72.5%` FG-IoU, `82.8%` Strict F1, **`86.5%` ODS Global F1**, **`86.3%` OIS F1**, **`86.1%` 2-Class mIoU** with 4-view TTA) — matching or exceeding heavier published CNN-Transformer hybrids (`DTrCNet` `84.7%` ODS, `SimCrack` `85.7%` ODS, `EfficientCrackNet` `85.9%` F1) at `4.0–6.5×` faster FP16 CUDA-Graph inference.
+**Dual-Protocol `DeepCrack` Crack Segmentation Audit (`RTX 3090` & `CPU`)**:
+- *Protocol 1 — Strict Scene-Disjoint Official Split (`300` train / `237` unseen test, `8.0%` parent-image prefix overlap)*:
+  - `Black-Hat Adaptive` (Ours, zero-GPU CPU): `0.00M` params, `17.8 ms` (`56.3 FPS`), `54.8%` FG-IoU, `67.5%` Strict F1.
+  - `CrackSeg-MV3-clDice` (Ours, RTX 3090): `3.17M` params, **`5.27 ms` (`189.8 FPS`, `306.5 MiB` VRAM)** in FP16 + `torch.cuda.CUDAGraph`, `72.5%` strict FG-IoU, `82.8%` Strict F1, `85.4%` Global F1.
+  - **`CrackSeg-CNX-SDM` (Ours, Zero-BN, RTX 3090)**: `12.59M` params (truncated `ConvNeXt-Tiny` Stages 1–3 + `k=13` `SDM` gated directional fusion + `GroupNorm` `MSF` + `soft-clDice`), **`13.4 ms` (`74.6 FPS`, `346.8 MiB` VRAM)**, **`72.8%` strict FG-IoU**, **`83.1%` Strict F1**, **`87.0%` OIS**.
+- *Protocol 2 — Apples-to-Apples 2023–2026 Literature Split (`7:1:2 @ 512×512`, `85.0%` parent-image overlap, exact `SCSegamba` `eval/evaluate.py`)*:
+  - `CrackSeg-CNX-SDM` jumps to **`79.3%` strict FG-IoU**, **`95.4%` safety recall**, **`88.0%` ODS**, **`88.8%` OIS**, **`89.3%` per-image mIoU** (**`91.3%` global 2-class mIoU**), and **`90.9%` F1** — outperforming `DTrCNet` (`84.7%` ODS), `SimCrack` (`85.7%`), and `Crackmer` (`87.1%`), and matching CVPR 2025 `SCSegamba` (`91.1%` F1) at **`2.3×` lower latency (`13.4 ms` vs. `31.3 ms`)** with zero custom CUDA Mamba/RWKV kernels.
 
 **Industrial CAM, Language Compiler & Robustness Highlights**:
 - **30-Case Adversarial Colloquial Order Stress Test (`YunfuColloquialOrder-30`)**: **`30/30` (`100.0%`)** exact AST match and **`30/30` (`100.0%`)** formal schema validation at `1.05 ms/order` CPU (vs. `0/30` for unconstrained regex) across spoken Chinese dimensions, mixed `m/cm/mm` units, negation clauses, polymorphic assemblies, bookmatching, and edge quantifiers.

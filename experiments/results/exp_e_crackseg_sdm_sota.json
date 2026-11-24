@@ -1,0 +1,173 @@
+{
+  "device": "NVIDIA GeForce RTX 3090",
+  "protocol_1_official_300_237": {
+    "CrackSeg-MV3-SDM": {
+      "params": 3255423,
+      "params_m": 3.26,
+      "epochs": 85,
+      "train_sec": 1225.8,
+      "train_peak_vram_mib": 6868.6,
+      "best_val_miou_pct": null,
+      "resolution": "512x512",
+      "fp16_cudagraph_ms": 17.14,
+      "fp16_cudagraph_fps": 58.4,
+      "fp16_cudagraph_vram_mib": 246.9,
+      "single_pass": {
+        "scsegamba_ods_pct": 82.39,
+        "scsegamba_ois_pct": 84.64,
+        "scsegamba_miou_pct": 85.19,
+        "scsegamba_f1_peaknorm_pct": 83.95,
+        "global_2class_miou_05_pct": 85.51,
+        "per_img_2class_miou_05_pct": 85.06,
+        "strict_fg_iou_05_pct": 71.46,
+        "strict_fg_f1_05_pct": 82.15,
+        "strict_global_f1_05_pct": 83.95,
+        "safety_recall_05_pct": 85.87
+      },
+      "tta_4view": {
+        "scsegamba_ods_pct": 83.74,
+        "scsegamba_ois_pct": 86.41,
+        "scsegamba_miou_pct": 86.04,
+        "scsegamba_f1_peaknorm_pct": 84.46,
+        "global_2class_miou_05_pct": 85.91,
+        "per_img_2class_miou_05_pct": 85.59,
+        "strict_fg_iou_05_pct": 72.47,
+        "strict_fg_f1_05_pct": 82.95,
+        "strict_global_f1_05_pct": 84.46,
+        "safety_recall_05_pct": 86.35
+      },
+      "subset20": {
+        "scsegamba_ods_pct": 84.51,
+        "scsegamba_ois_pct": 85.87,
+        "scsegamba_miou_pct": 86.72,
+        "scsegamba_f1_peaknorm_pct": 81.68,
+        "global_2class_miou_05_pct": 84.22,
+        "per_img_2class_miou_05_pct": 84.35,
+        "strict_fg_iou_05_pct": 69.28,
+        "strict_fg_f1_05_pct": 81.19,
+        "strict_global_f1_05_pct": 81.68,
+        "safety_recall_05_pct": 91.83
+      },
+      "checkpoint": "crackseg_mv3_sdm_p1_300_237.pt"
+    },
+    "CrackSeg-CNX-SDM": {
+      "params": 12586799,
+      "params_m": 12.59,
+      "epochs": 85,
+      "train_sec": 1977.2,
+      "train_peak_vram_mib": 8080.0,
+      "best_val_miou_pct": null,
+      "resolution": "512x512",
+      "fp16_cudagraph_ms": 13.41,
+      "fp16_cudagraph_fps": 74.6,
+      "fp16_cudagraph_vram_mib": 346.8,
+      "single_pass": {
+        "scsegamba_ods_pct": 82.84,
+        "scsegamba_ois_pct": 85.16,
+        "scsegamba_miou_pct": 85.49,
+        "scsegamba_f1_peaknorm_pct": 83.71,
+        "global_2class_miou_05_pct": 85.33,
+        "per_img_2class_miou_05_pct": 85.33,
+        "strict_fg_iou_05_pct": 72.01,
+        "strict_fg_f1_05_pct": 82.57,
+        "strict_global_f1_05_pct": 83.71,
+        "safety_recall_05_pct": 85.78
+      },
+      "tta_4view": {
+        "scsegamba_ods_pct": 84.09,
+        "scsegamba_ois_pct": 86.95,
+        "scsegamba_miou_pct": 86.36,
+        "scsegamba_f1_peaknorm_pct": 84.31,
+        "global_2class_miou_05_pct": 85.8,
+        "per_img_2class_miou_05_pct": 85.73,
+        "strict_fg_iou_05_pct": 72.77,
+        "strict_fg_f1_05_pct": 83.1,
+        "strict_global_f1_05_pct": 84.31,
+        "safety_recall_05_pct": 86.11
+      },
+      "subset20": {
+        "scsegamba_ods_pct": 87.29,
+        "scsegamba_ois_pct": 89.77,
+        "scsegamba_miou_pct": 88.84,
+        "scsegamba_f1_peaknorm_pct": 84.18,
+        "global_2class_miou_05_pct": 86.09,
+        "per_img_2class_miou_05_pct": 86.31,
+        "strict_fg_iou_05_pct": 73.11,
+        "strict_fg_f1_05_pct": 83.95,
+        "strict_global_f1_05_pct": 84.18,
+        "safety_recall_05_pct": 93.35
+      },
+      "checkpoint": "crackseg_cnx_sdm_p1_300_237.pt"
+    }
+  },
+  "protocol_2_cvpr_7_1_2_512": {
+    "CrackSeg-MV3-SDM": {
+      "params": 3255423,
+      "params_m": 3.26,
+      "epochs": 85,
+      "train_sec": 1591.3,
+      "train_peak_vram_mib": 6084.7,
+      "best_val_miou_pct": 86.88,
+      "fp16_cudagraph_ms": 17.14,
+      "fp16_cudagraph_fps": 58.4,
+      "single_pass": {
+        "scsegamba_ods_pct": 87.0,
+        "scsegamba_ois_pct": 87.95,
+        "scsegamba_miou_pct": 88.57,
+        "scsegamba_f1_peaknorm_pct": 90.12,
+        "global_2class_miou_05_pct": 90.58,
+        "per_img_2class_miou_05_pct": 88.54,
+        "strict_fg_iou_05_pct": 77.95,
+        "strict_fg_f1_05_pct": 86.98,
+        "strict_global_f1_05_pct": 90.12,
+        "safety_recall_05_pct": 94.96
+      },
+      "tta_4view": {
+        "scsegamba_ods_pct": 86.86,
+        "scsegamba_ois_pct": 87.89,
+        "scsegamba_miou_pct": 88.43,
+        "scsegamba_f1_peaknorm_pct": 90.13,
+        "global_2class_miou_05_pct": 90.58,
+        "per_img_2class_miou_05_pct": 88.4,
+        "strict_fg_iou_05_pct": 77.68,
+        "strict_fg_f1_05_pct": 86.81,
+        "strict_global_f1_05_pct": 90.13,
+        "safety_recall_05_pct": 94.89
+      }
+    },
+    "CrackSeg-CNX-SDM": {
+      "params": 12586799,
+      "params_m": 12.59,
+      "epochs": 85,
+      "train_sec": 1264.4,
+      "train_peak_vram_mib": 8213.6,
+      "best_val_miou_pct": 87.29,
+      "fp16_cudagraph_ms": 13.41,
+      "fp16_cudagraph_fps": 74.6,
+      "single_pass": {
+        "scsegamba_ods_pct": 87.96,
+        "scsegamba_ois_pct": 88.84,
+        "scsegamba_miou_pct": 89.25,
+        "scsegamba_f1_peaknorm_pct": 90.91,
+        "global_2class_miou_05_pct": 91.27,
+        "per_img_2class_miou_05_pct": 89.23,
+        "strict_fg_iou_05_pct": 79.26,
+        "strict_fg_f1_05_pct": 87.94,
+        "strict_global_f1_05_pct": 90.91,
+        "safety_recall_05_pct": 95.4
+      },
+      "tta_4view": {
+        "scsegamba_ods_pct": 87.65,
+        "scsegamba_ois_pct": 88.51,
+        "scsegamba_miou_pct": 89.02,
+        "scsegamba_f1_peaknorm_pct": 90.74,
+        "global_2class_miou_05_pct": 91.12,
+        "per_img_2class_miou_05_pct": 88.97,
+        "strict_fg_iou_05_pct": 78.75,
+        "strict_fg_f1_05_pct": 87.58,
+        "strict_global_f1_05_pct": 90.74,
+        "safety_recall_05_pct": 95.34
+      }
+    }
+  }
+}
