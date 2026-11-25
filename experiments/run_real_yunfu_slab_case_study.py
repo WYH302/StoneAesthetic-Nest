@@ -42,8 +42,10 @@ MASTER_DIR = Path(__file__).resolve().parents[1]
 if str(MASTER_DIR) not in sys.path:
     sys.path.insert(0, str(MASTER_DIR))
 
+from src.llm_compiler.order_compiler import compile_chinese_order
 from src.ui_dxf.app import run_commercial_pipeline
-from src.vision.vision_parser import _order_quad_corners, detect_slab_corners_auto, rectify_slab_perspective
+from src.vision.slab_selector import grade_slab_intrinsic, score_slab_for_order
+from src.vision.vision_parser import _order_quad_corners, detect_slab_corners_auto, parse_slab_image, rectify_slab_perspective
 
 REAL_SLAB_DIR = MASTER_DIR / "real_yunfu_slabs"
 DEFAULT_PHOTOS_DIR = REAL_SLAB_DIR / "photos"
@@ -358,7 +360,7 @@ def render_combined_ijamt_figure(
         imgs = [raw_img, rect_img, overlay_img, drylay_img]
         sub_notes = [
             f"{rec['stone_name_en']} | {int(rec['width_mm'])}x{int(rec['height_mm'])} mm\nMode: {rec['calibration_mode']}",
-            f"Vein: {rec['dominant_vein_angle_deg']:.1f} deg | Defects: {rec['detected_defects_count']} ({rec['crack_backend_used']})",
+            f"Grade {rec.get('stage0_grade', 'A')} ({rec.get('stage0_score_100', 0):.0f}/100) | Vein: {rec['dominant_vein_angle_deg']:.1f} deg | Defects: {rec['detected_defects_count']}",
             f"RAC: {'PASS' if rec['rac_feasible'] else 'FAIL'} | Util: {rec['utilization_pct']:.1f}% | GTSP: -{rec['gtsp_reduction_pct']:.1f}%",
             f"Seam: {rec['seam_continuity_pct']:.1f}% | Gold: {rec['golden_hit_pct']:.1f}% | Mosaics: {rec['mosaic_count']} pcs",
         ]
@@ -518,6 +520,18 @@ def process_single_slab(
     rh, rw = rect_clean_bgr.shape[:2]
     full_rect_corners = [[0.0, 0.0], [float(rw), 0.0], [float(rw), float(rh)], [0.0, float(rh)]]
 
+    # Stage-0 Pre-Cutting Slab Grading & Order-Aware Screening ("先选板、再切板")
+    vis_s0 = parse_slab_image(
+        image_input=rect_clean_bgr,
+        width_mm=width_mm,
+        height_mm=height_mm,
+        corners_px=full_rect_corners,
+        safety_margin_mm=5.0,
+        external_crack_mask=external_mask,
+    )
+    order_state_s0 = compile_chinese_order(order_text)
+    stage0_eval = score_slab_for_order(vis_s0, order_state_s0, case_id=case_id)
+
     t0 = time.perf_counter()
     report = run_commercial_pipeline(
         image_input=clean_rect_path,
@@ -605,6 +619,12 @@ def process_single_slab(
         "common_line_saved_m": round(float(dxf_info.get("common_line_saved_m", 0.0)), 3),
         "pierce_safe_pct": round(float(dxf_info.get("pierce_safety_rate_pct", 100.0)), 1),
         "net_gross_margin_rmb": float(quote.get("net_gross_margin_rmb", 0.0)),
+        "stage0_grade": stage0_eval["intrinsic"]["grade"],
+        "stage0_score_100": stage0_eval["intrinsic"]["intrinsic_score_100"],
+        "stage0_action": stage0_eval["order_match"]["action"],
+        "stage0_action_cn": stage0_eval["order_match"]["action_cn"],
+        "stage0_pred_profit_cny": stage0_eval["order_match"]["predicted_net_profit_cny"],
+        "stage0_screen_ms": stage0_eval["order_match"]["screen_latency_ms"],
         "pipeline_runtime_sec": total_sec,
         "annotated_raw_png": str(ann_raw_path),
         "annotated_rect_png": str(ann_rect_path),
@@ -690,10 +710,20 @@ def main() -> None:
         )
         records.append(rec)
         print(
-            f"    [OK] Mode={rec['calibration_mode']} | RAC={rec['rac_feasible']} | "
+            f"    [OK] Stage0={rec['stage0_grade']}({rec['stage0_score_100']:.0f}/100, {rec['stage0_action']}) | "
+            f"Mode={rec['calibration_mode']} | RAC={rec['rac_feasible']} | "
             f"Seam={rec['seam_continuity_pct']:.1f}% | Gold={rec['golden_hit_pct']:.1f}% | "
             f"Util={rec['utilization_pct']:.1f}% | GTSP=-{rec['gtsp_reduction_pct']:.1f}% | "
             f"Time={rec['pipeline_runtime_sec']:.2f}s"
+        )
+
+    # Sort & print Stage-0 Warehouse Selection Leaderboard across all processed real slabs
+    ranked = sorted(records, key=lambda r: (r["stage0_pred_profit_cny"], r["stage0_score_100"]), reverse=True)
+    print("\n=== Stage-0 Pre-Cutting Slab Selection Ranking ===")
+    for rk, r in enumerate(ranked, start=1):
+        print(
+            f"  #{rk} {r['case_id']:28s} | Grade={r['stage0_grade']:2s} ({r['stage0_score_100']:5.1f}/100) | "
+            f"PredProfit=CNY {r['stage0_pred_profit_cny']:,.0f} | {r['stage0_action_cn']}"
         )
 
     fig_png = out_dir / "fig_real_yunfu_workshop_cases.png"

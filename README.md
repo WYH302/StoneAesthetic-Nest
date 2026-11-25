@@ -18,20 +18,20 @@
 **English**  
 In custom natural stone fabrication (marble, landscape onyx, and travertine), layout quality depends not only on raw sheet utilization, but also on **cross-joint vein continuity, natural grain alignment, structural crack avoidance, and interior cutout reuse**. Even full-strength geometric packing engines treat stock sheets as blank isotropic containers—often scattering multi-panel feature walls into mismatched patchworks or rotating elongated strips across natural mineral veins at identical raw area utilization.
 
-`StoneAesthetic-Nest` is an open-source research prototype coupling anisotropic visual perception, polymorphic workshop order compilation, lightweight neural-combinatorial search, and certified industrial CAM toolpath generation:
-1. **Anisotropic Slab Field & Topology-Preserving Crack Perception**: Combines automatic 4-corner ArUco (`DICT_4X4_50`) / dual-polarity homography calibration, a `96×60` integral-image ($O(1)$ query) structure-tensor local orientation field $\theta_{\text{flow}}(x,y)$ & Golden Vein Zone $\Omega_{\text{gold}}$, and dual-mode crack buffering (`Black-Hat Adaptive` zero-GPU CPU or `CrackSeg-MV3-clDice`, `3.17M` params, `72.5%` strict FG-IoU / `86.5%` ODS F1 / `18.4 ms` on RTX 3090).
-2. **Polymorphic 3-Tier Workshop Order AST & Zero-Distortion Feedback**: Parses colloquial Chinese cutting descriptions (`cm`/`mm` normalization, spoken fractions, negation handling) across 6 real-world architectural archetypes (`3×2` feature walls, `1×4` landscape screens, hollow sink islands with interior *Part-in-Part* recovery, L-shaped bars, circular tables, `2×2` medallions) plus twin-slab mirrored **Bookmatching** (`96.1%` mirrored seam continuity) and zero-distortion **Multi-Slab Spillover** recovery (`100%` recovery without shrinking customer parts).
-3. **Bi-Level Neural-Combinatorial Nesting (`STRtree` + Coarse-to-Fine)**: Uses an unfrozen 12-D PyTorch residual ranker (`AestheticVeinRankerMLP`, `3,085` params, `100.0%` OOF rank accuracy on unseen varieties) with Tier-1/Tier-2 coupled backtracking, `48→12 mm` + micro-angle refinement, and Shapely `STRtree` spatial indexing to anchor core assemblies inside $\Omega_{\text{gold}}$, align bridge-saw strips strictly along $\theta_{\text{flow}}$ (`0.0°` error), and tessellate peripheral remnants (`▲▼` honeycombs / hexagons / squares).
-4. **Certifying Geometry & Industrial CAM Deliverables**: Verifies every polygon via an independent `RAC-Checker` (`100%` pass rate) and exports a **13-layer AutoCAD R2010 `.dxf`** featuring **4-corner GTSP 2-Opt rapid-air routing (`-73.6%` air travel)**, **collinear bridge-saw common-line merging (`-38.6%` segments, `2.63 m/slab` saved)**, **`100.0%` neighbor- & defect-safe waterjet pierce points**, and a **Client Dry-Lay Preview**.
+`StoneAesthetic-Nest` is an open-source research prototype coupling **Stage-0 pre-cutting warehouse slab selection**, anisotropic visual perception, polymorphic workshop order compilation, lightweight neural-combinatorial search, and certified industrial CAM toolpath generation:
+1. **Stage-0 Pre-Cutting Slab Grading & Warehouse Selection (`SlabSelect`)**: Grades raw warehouse slabs (`0–100` score, tiers `A+ / A / B / C`) via exact $O(G_x G_y)$ largest-clean-rectangle dynamic programming on the `96×60` field and screens candidate racks in **`93.8 ms/slab`** (`1.13 s` for `12` slabs)—including proactive **Defect-in-Cutout Absorption ("以孔吃裂")** aligning hollow kitchen-island sink cutouts over compact central flaws. Across `12` real PBR varieties × `6` archetypes (`72` exact `RAC-Checker` runs, `Exp H`), `SlabSelect` lifts realized net profit by **`+24.8%` (Top-1: `CNY 3,847`, `96.1%` Oracle at `7.9×` speedup)** to **`+27.5%` (Top-3: `CNY 3,929`, `98.2%` Oracle at `3.4×` speedup)** over FIFO picks while rejecting **`100.0%`** of `C`-grade slabs.
+2. **Anisotropic Slab Field & Topology-Preserving Crack Perception**: Combines automatic 4-corner ArUco (`DICT_4X4_50`) / dual-polarity homography calibration, a `96×60` integral-image ($O(1)$ query) structure-tensor local orientation field $\theta_{\text{flow}}(x,y)$ & Golden Vein Zone $\Omega_{\text{gold}}$, and multi-backend crack segmentation (`Black-Hat Adaptive` zero-GPU CPU, `CrackSeg-MV3-clDice` at **`5.27 ms` / `189.8 FPS`** FP16 `CUDAGraph`, and zero-`BatchNorm` `CrackSeg-CNX-SDM` at **`13.4 ms` / `74.6 FPS`**).
+3. **Polymorphic 3-Tier Workshop Order AST & Zero-Distortion Feedback**: Parses colloquial Chinese cutting descriptions (`30/30` = `100.0%` exact match on `YunfuColloquialOrder-30`) across 6 real-world architectural archetypes (`3×2` feature walls, `1×4` landscape screens, hollow sink islands with interior *Part-in-Part* recovery, L-shaped bars, circular tables, `2×2` medallions) plus twin-slab mirrored **Bookmatching** (`96.1%` mirrored seam continuity) and zero-distortion **Multi-Slab Spillover** recovery (`100%` recovery without shrinking customer parts).
+4. **Bi-Level Neural-Combinatorial Nesting & Certified 5-Axis Bridge-Saw/Waterjet CAM**: Uses an unfrozen 12-D PyTorch residual ranker (`AestheticVeinRankerMLP`, `3,085` params, `100.0%` OOF rank accuracy on unseen varieties) with Tier-1/Tier-2 coupled backtracking, `48→12 mm` micro-angle refinement, and Shapely `STRtree` indexing, verified `100%` by independent `RAC-Checker` before exporting a **13-layer AutoCAD R2010 `.dxf`** (**`-73.6%` GTSP air travel**, **`-38.6%` merged bridge-saw passes**, **`100.0%` safe waterjet pierces**) and a **Client Dry-Lay Preview**.
 
 **简体中文**  
-在天然大理石、山水玉与洞石等定制加工场景中，排版的商业价值不仅取决于板材出材率，更取决于**核心件跨刀缝连纹对花、长条件顺纹一致、暗裂安全避让以及挖孔余料二次套裁**。即便是最顶尖的纯几何排样求解器，由于默认将大板视为均匀白板，往往在相同利用率下将多联背景墙打散成“阴阳脸”，或将踏步/飘窗旋转成横纹废品。
+在天然大理石、山水玉与洞石等定制加工场景中，真正的高价值生产始于**切前仓库选板（先挑好板、再排版切割）**，并取决于**核心件跨刀缝连纹对花、长条件顺纹一致、暗裂安全避让以及挖孔余料二次套裁**。即便是最顶尖的纯几何排样求解器，由于默认将大板视为均匀白板，往往在相同利用率下将多联背景墙打散成“阴阳脸”，或将踏步/飘窗旋转成横纹废品。
 
-`StoneAesthetic-Nest` 是一个面向天然石材排版与数控刀路规划的轻量级开源原型：
-1. **石板体检、裂纹拓扑分割与各向异性美学场**：支持 ArUco 四角标定纸（`DICT_4X4_50`）与双极性边缘透视矫正、`96×60` 积分图 $O(1)$ 局部纹向场 $\theta_{\text{flow}}(x,y)$ 及黄金主纹带 $\Omega_{\text{gold}}$，并提供零 GPU `Black-Hat Adaptive`（CPU `17.8 ms`）与 `CrackSeg-MV3-clDice`（RTX 3090 `18.4 ms` / `54.4 FPS`，`DeepCrack-237` 上 `72.5%` 严格前景 IoU / `86.5%` ODS F1）双后端裂纹检测。
-2. **多变定制订单解析、镜面对纹与零缩尺跨板溢出**：支持口语化中文描述（如“半米见方”“一米二”“不要马赛克”等）与 6 大类常见定制订单，内置双板镜面对纹（Bookmatching，镜像连续度 `96.1%`）以及拒绝缩尺变型的**跨板溢出恢复闭环（100% 恢复）**。
-3. **两级神经-组合套裁（空间索引 + 粗到精微调 + Tier-1/Tier-2 耦合回溯）**：采用未冻结 12 维轻量残差网络（`3,085` 参数，未知石材品种 5 折交叉验证排序准确率 `100.0%`），结合 `48→12 mm` 粗到精搜索与 `STRtree` 空间索引，锁死核心连纹、实现 `0.0°` 顺纹误差长条排布以及孔内/边角余料密铺。
-4. **独立几何校核与工业级 CAM 刀路导出**：所有排样均经独立 `RAC-Checker` 100% 验收，一键导出 **13 层 AutoCAD R2010 `.dxf`**（含 **4 角点 GTSP 2-Opt 空程优化 `-73.6%`**、**桥切共线合并 `-38.6%` 刀段**、**100% 零碰撞穿孔安全点**）及 **客户干铺效果图**。
+`StoneAesthetic-Nest` 是一个面向天然石材**切前选板—排版—数控刀路**全链路的轻量级开源原型：
+1. **Stage-0 切前智能选板与订单匹配（`SlabSelect`）**：复用 `96×60` 积分图纹理场与 $O(G_x G_y)$ 最大无裂矩形动态规划，先给仓库大板输出 `0–100` 体检分与 `A+/A/B/C` 商业等级，再以 **`93.8 ms/板`** 的速度按来单精准筛选整架大板（并支持中岛水槽 **“以孔吃裂”**，自动将小型中心瑕疵套入水槽废孔）。在 `12` 块真实 PBR 大板 × `6` 类订单（`72` 组全精确求解，`Exp H`）测试中，相比随机/先入先出拿板平均净利提升 **`+24.8%`（Top-1，`CNY 3,847`，达理论最优 `96.1%`，提速 `7.9×`）** 至 **`+27.5%`（Top-3，`CNY 3,929`，达理论最优 `98.2%`，提速 `3.4×`）**，`C` 级废板拦截率 **`100.0%`**。
+2. **石板体检、双协议裂纹分割与各向异性美学场**：支持 ArUco 四角标定纸（`DICT_4X4_50`）与双极性透视矫正、`96×60` 积分图 $O(1)$ 局部纹向场 $\theta_{\text{flow}}(x,y)$ 及黄金主纹带 $\Omega_{\text{gold}}$，并提供零 GPU `Black-Hat Adaptive`、`CrackSeg-MV3-clDice`（RTX 3090 FP16 `CUDAGraph` **`5.27 ms` / `189.8 FPS`**）与零 `BatchNorm` **`CrackSeg-CNX-SDM`**（**`13.4 ms` / `74.6 FPS`**）多后端裂纹感知。
+3. **多变定制订单解析、镜面对纹与零缩尺跨板溢出**：在 30 条口语化对抗订单压测集（`YunfuColloquialOrder-30`）上实现 **`30/30` (`100.0%`)** 精确解析，覆盖 6 大类常见定制订单，内置双板镜面对纹（Bookmatching，镜像连续度 `96.1%`）与拒绝缩尺的**跨板溢出恢复闭环（100% 恢复）**。
+4. **两级神经-组合套裁与工业级 5 轴桥切/水刀 CAM 导出**：采用未冻结 12 维轻量残差网络（`3,085` 参数，未知石材品种 5 折交叉验证排序准确率 `100.0%`）与 `STRtree` 空间索引，所有排样经独立 `RAC-Checker` 100% 验收，一键导出 **13 层 AutoCAD R2010 `.dxf`**（兼容国内主流五轴石材桥切设备，含 **4 角点 GTSP 2-Opt 空程优化 `-73.6%`**、**桥切共线合并 `-38.6%` 刀段**、**100% 零碰撞穿孔安全点**）及 **客户干铺效果图**。
 
 ---
 
@@ -55,6 +55,11 @@ In custom natural stone fabrication (marble, landscape onyx, and travertine), la
 ### 4. 36-Panel Multi-Archetype Dry-Lay Comparison Wall (`A1`–`A6`) | 6 大类多变订单干铺效果对比墙
 <p align="center">
   <img src="assets/sota_dry_lay_wall.png" width="96%" alt="36-Panel Polymorphic Dry-Lay Comparison Matrix"/>
+</p>
+
+### 5. Stage-0 Pre-Cutting Slab Grading & Warehouse Selection (`Exp H`: 12 Slabs × 6 Orders) | 切前智能选板评级与仓库匹配看板
+<p align="center">
+  <img src="assets/stage0_slab_selection.png" width="96%" alt="Stage-0 Pre-Cutting Slab Grading and Order-Aware Warehouse Selection"/>
 </p>
 
 ---
@@ -100,6 +105,18 @@ Evaluated across `YunfuPoly-24` (`24` uncut `3000×1800 mm` CC0 marble, onyx, an
 | `RL-PPO-Adapted` | 52.6% | 21.2% | 25.1° | 13.5 | 48.6% | 1,273 |
 | `GFPack++-Adapted` | 52.6% | 21.2% | 22.0° | 13.5 | 48.5% | 1,354 |
 | **StoneAesthetic-Nest (Ours)** | **87.7%** | **96.4%** | **0.0°** | **35.3** | **57.0%** | **3,759** |
+
+**Stage-0 Pre-Cutting Warehouse Slab Selection Audit (`Exp H`: 12 Real PBR Slabs × 6 Archetypes = 72 Exact `RAC-Checker` Runs)**:
+
+| Warehouse Selection Policy / 选板策略 | Mean Profit (CNY) | vs. FIFO | Oracle Capture | Decision + Nest | Speedup | C-Grade Rej. |
+| :--- | :---: | :---: | :---: | :---: | :---: | :---: |
+| FIFO / Random Rack Pick | 3,082.35 | --- | 77.0% | 2.14 s/order | 12.0× | 0.0% |
+| Intrinsic-Only Grade (`Q_slab` Top-1) | 3,695.19 | +612.8 (+19.9%) | 92.3% | 2.22 s/order | 11.6× | 100.0% |
+| **Stage-0 `SlabSelect` Top-1 (Ours)** | **3,847.34** | **+765.0 (+24.8%)** | **96.1%** | **3.27 s/order** | **7.9×** | **100.0%** |
+| **Stage-0 `SlabSelect` Top-3 (Ours)** | **3,929.32** | **+847.0 (+27.5%)** | **98.2%** | 7.55 s/order | 3.4× | **100.0%** |
+| Exhaustive 12-Slab Full-Nest Oracle | 4,003.12 | +920.8 (+29.9%) | 100.0% | 25.68 s/order | 1.0× | 100.0% |
+
+- Screening speed: **`93.8 ms/slab`** (`1.13 s` per 12-slab rack), global Spearman $\rho = 0.546$ ($p = 7.03 \times 10^{-7}$), **`2/2` (`100.0%`) Defect-in-Cutout Absorption** hits on `A3` hollow sink islands (`S08_Marble014`, `S09_Marble021`).
 
 **Dual-Protocol `DeepCrack` Crack Segmentation Audit (`RTX 3090` & `CPU`)**:
 - *Protocol 1 — Strict Scene-Disjoint Official Split (`300` train / `237` unseen test, `8.0%` parent-image prefix overlap)*:
@@ -156,8 +173,8 @@ If you find this open-source prototype, polymorphic stone benchmark, or real-sla
 ```bibtex
 @article{wu2026stoneaesthetic,
   author  = {Wu, Yonghao},
-  title   = {StoneAesthetic-Nest: Beyond Area Maximization---Anisotropic Vein-Continuous and Multi-Tier Nesting for Natural Stone CAD/CAM},
-  journal = {Preprint submitted to The International Journal of Advanced Manufacturing Technology},
+  title   = {StoneAesthetic-Nest: Pre-Cutting Slab Grading and Anisotropic Multi-Tier Nesting for Natural Stone CAD/CAM},
+  journal = {IEEE Transactions Manuscript Preprint},
   year    = {2026}
 }
 ```
