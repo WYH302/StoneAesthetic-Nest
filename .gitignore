@@ -2,7 +2,12 @@ __pycache__/
 *.py[cod]
 *.egg-info/
 .pytest_cache/
-.tmp*/
-outputs_demo/
 .DS_Store
 Thumbs.db
+outputs_demo/
+real_yunfu_slabs/photos/*.jpg
+real_yunfu_slabs/photos/*.jpeg
+real_yunfu_slabs/photos/*.png
+real_yunfu_slabs/真实数据集/
+*.local.json
+.env
